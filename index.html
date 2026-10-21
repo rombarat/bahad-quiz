@@ -757,15 +757,54 @@ const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- SOUND (synthesized, no files) ---------- */
-let AC=null, muted=store.get('bq-muted',false);
-function ac(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C()}if(AC.state==='suspended')AC.resume();return AC}
-function tone(f,t0,dur,type,vol,slide){const c=ac();if(!c||muted)return;const t=c.currentTime+t0,o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+dur);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol||.15,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(c.destination);o.start(t);o.stop(t+dur+.05)}
+let AC=null,OUT=null,REV=null,muted=store.get('bq-muted',false);
+function ac(){
+  if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C();
+    const comp=AC.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;comp.connect(AC.destination);
+    OUT=AC.createGain();OUT.gain.value=.9;OUT.connect(comp);
+    // generated reverb impulse: 1.8s decaying stereo noise
+    const len=AC.sampleRate*1.8,buf=AC.createBuffer(2,len,AC.sampleRate);
+    for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2)}
+    const conv=AC.createConvolver();conv.buffer=buf;REV=AC.createGain();REV.gain.value=.32;REV.connect(conv);conv.connect(comp);}
+  if(AC.state==='suspended')AC.resume();return AC}
+function env(g,t,a,peak,dec){g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+dec)}
+function voice(f,t0,{type='sine',vol=.15,a=.006,dec=.4,slide=0,rev=.6,detune=0}={}){
+  const c=ac();if(!c||muted)return;const t=c.currentTime+t0,o=c.createOscillator(),g=c.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t);o.detune.value=detune;if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+a+dec);
+  env(g,t,a,vol,dec);o.connect(g);g.connect(OUT);if(rev){const s=c.createGain();s.gain.value=rev;g.connect(s);s.connect(REV)}
+  o.start(t);o.stop(t+a+dec+.1)}
+// bell: inharmonic partials with staggered decays
+function bell(f,t0,vol=.12,dec=1.1){[[1,1,1],[2.01,.5,.6],[3.01,.28,.4],[4.17,.16,.28],[5.43,.08,.2]].forEach(([r,v,d])=>voice(f*r,t0,{vol:vol*v,dec:dec*d,a:.003,rev:.8}))}
+function pluck(f,t0,vol=.14){voice(f,t0,{type:'triangle',vol,dec:.22,rev:.3});voice(f*2,t0,{vol:vol*.3,dec:.12,rev:.2})}
+function noise(t0,dur,vol,from,to,q=1.2){const c=ac();if(!c||muted)return;const t=c.currentTime+t0,n=c.sampleRate*dur,b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+  const s=c.createBufferSource();s.buffer=b;const f=c.createBiquadFilter();f.type='bandpass';f.Q.value=q;f.frequency.setValueAtTime(from,t);f.frequency.exponentialRampToValueAtTime(to,t+dur);
+  const g=c.createGain();env(g,t,dur*.4,vol,dur*.6);s.connect(f);f.connect(g);g.connect(OUT);const r=c.createGain();r.gain.value=.5;g.connect(r);r.connect(REV);s.start(t);s.stop(t+dur+.05)}
+function kick(t0,vol=.5){voice(150,t0,{vol,dec:.28,slide:45,rev:.1})}
+function sparkle(t0,n=6,base=2093){for(let i=0;i<n;i++)voice(base*Math.pow(2,(Math.random()*12|0)/12)*(Math.random()<.5?1:2),t0+i*.035+Math.random()*.02,{vol:.03,dec:.25,rev:1})}
+// major pentatonic ladder: each answer in a streak climbs one step
+const LADDER=[0,2,4,7,9,12,14,16,19,21,24,26,28,31];
+const hz=semi=>523.25*Math.pow(2,semi/12);
 const SFX={
-  tap(){tone(880,0,.05,'triangle',.05)},
-  ok(n){const k=Math.pow(2,Math.min(n-1,7)/12);tone(659.25*k,0,.14,'sine',.17);tone(987.77*k,.075,.32,'sine',.17);tone(1975.5*k,.075,.22,'triangle',.03)},
-  no(){tone(233,0,.18,'square',.06,196);tone(174,.13,.32,'triangle',.16,130)},
-  combo(){[1046.5,1318.5,1568,2093].forEach((f,i)=>tone(f,.18+i*.055,.2,'triangle',.08))},
-  win(){[523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,i*.13,.4,'sine',.15));[1318.5,1568].forEach((f,i)=>tone(f,.55+i*.1,.7,'triangle',.07))}
+  tap(){voice(700,0,{vol:.08,dec:.07,slide:380,rev:.05})},
+  select(){voice(620,0,{vol:.1,dec:.09,slide:900,rev:.1});voice(1240,0,{vol:.03,dec:.05,rev:0})},
+  ok(n){const s=LADDER[Math.min(n-1,LADDER.length-1)],r=hz(s);
+    pluck(r,0,.13);pluck(r*1.25,.06,.12);bell(r*1.5,.12,.13,1.2);
+    if(n>=3){bell(r*2,.2,.06,1);sparkle(.2,4+Math.min(n,8))}
+    if(n>=6)voice(r/2,.12,{type:'sawtooth',vol:.025,dec:.6,a:.04,rev:.9,detune:-8})},
+  coin(){voice(1975.5,0,{type:'square',vol:.035,dec:.06,rev:.2});voice(2637,.07,{type:'square',vol:.035,dec:.28,rev:.4})},
+  no(){voice(311,0,{type:'triangle',vol:.16,dec:.2,slide:277,rev:.25});voice(233,.14,{type:'triangle',vol:.16,dec:.38,slide:207,rev:.3});voice(116,.14,{vol:.1,dec:.3,rev:0})},
+  combo(n){noise(0,.35,.18,600,6000);[0,4,7,12,16].forEach((s,i)=>bell(hz(s+(n>=10?7:0)),.18+i*.06,.07,.9));sparkle(.5,12,2637);kick(.18,.3)},
+  rise(){noise(0,.5,.06,300,3000,.8)},
+  tick(i){voice(1400+(i%5)*90,0,{type:'square',vol:.015,dec:.025,rev:0})},
+  win(perfect){
+    kick(0,.5);kick(.48,.4);noise(0,.45,.12,400,5000);
+    const ch=[[0,4,7],[5,9,12],[7,11,14],[12,16,19,24]];
+    ch.forEach((c,i)=>c.forEach(s=>{pluck(hz(s-12),i*.16,.09);bell(hz(s),i*.16,.06,i===3?1.8:.6)}));
+    [12,16,19,24].forEach(s=>voice(hz(s-12),.48,{type:'sawtooth',vol:.02,a:.08,dec:1.6,rev:1,detune:(Math.random()-.5)*14}));
+    sparkle(.55,16,2093);
+    if(perfect){[24,28,31,36].forEach((s,i)=>bell(hz(s),.9+i*.09,.07,1.4));sparkle(1.1,20,3136)}
+  },
+  unlock(){[7,12,19].forEach((s,i)=>bell(hz(s),i*.08,.08,.9));sparkle(.2,8)}
 };
 const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
 const SND_ON='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 10v4h4l5 4V6L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>';
@@ -889,7 +928,7 @@ function next(){
 }
 function choose(k){
   if(L.state!=='pick')return;
-  L.sel=k;SFX.tap();
+  L.sel=k;SFX.select();
   $$('#opts .opt').forEach(b=>b.classList.toggle('sel',+b.dataset.k===k));
   $('#check').disabled=false;
 }
@@ -912,8 +951,8 @@ function check(){
     SFX.ok(L.combo);buzz(18);
     const r=$('#o'+L.sel).getBoundingClientRect();
     burst(r.left+r.width/2,r.top+r.height/2,L.combo>=5?34:18,L.combo>=5?8:5);
-    floatText('+'+gain+' XP',r.left+r.width/2,r.top);
-    if([3,5,10,15,20].includes(L.combo)){setTimeout(()=>{SFX.combo();toast(L.combo+' ברצף!'+(L.combo>=5?' בונוס XP':''))},120)}
+    floatText('+'+gain+' XP',r.left+r.width/2,r.top);setTimeout(SFX.coin,260);
+    if([3,5,10,15,20].includes(L.combo)){setTimeout(()=>{SFX.combo(L.combo);toast(L.combo+' ברצף!'+(L.combo>=5?' בונוס XP':''))},120)}
     f.className='foot ok';$('#vIcon').innerHTML=ICON_OK;$('#vText').textContent=pick(OK_WORDS);
     $('#fbAns').textContent='';$('#fbAns').hidden=true;
     c.className='big ok';
@@ -929,7 +968,7 @@ function check(){
   }
   $('#fbWhy').textContent=why;
   setCombo(ok);
-  $('#pfill').style.width=(L.done/L.total*100)+'%';
+  $('#pfill').style.width=(L.done/L.total*100)+'%';if(ok&&L.done===L.total)SFX.rise();
   c.textContent=L.queue.length?'המשך':'לסיום השיעור';c.disabled=false;c.focus({preventScroll:true});
 }
 $('#check').onclick=()=>{if(L.state==='pick')check();else if(L.state==='fb')next()};
@@ -952,7 +991,7 @@ const TROPHY=`<defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop of
 <path d="M60 26l5 10 11 1.5-8 7.5 2 11-10-5.5-10 5.5 2-11-8-7.5 11-1.5z" fill="#fff" opacity=".9"/>
 <rect x="53" y="73" width="14" height="14" fill="#f2a01c" stroke="#c87a00" stroke-width="4"/>
 <rect x="36" y="87" width="48" height="16" rx="5" fill="#58702a" stroke="#3f5219" stroke-width="4"/>`;
-function countUp(el,to,suf){if(reduced){el.textContent=to+suf;return}const t0=performance.now(),d=900;(function f(t){const p=Math.min((t-t0)/d,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(to*e)+suf;if(p<1)requestAnimationFrame(f)})(t0)}
+function countUp(el,to,suf,ticks){if(reduced){el.textContent=to+suf;return}const t0=performance.now(),d=900;let last=-1,k=0;(function f(t){const p=Math.min((t-t0)/d,1),e=1-Math.pow(1-p,3),v=Math.round(to*e);el.textContent=v+suf;if(ticks&&v!==last&&t-(f.lt||0)>45){SFX.tick(k++);f.lt=t}last=v;if(p<1)requestAnimationFrame(f)})(t0)}
 function finish(){
   const tEl=$('#toast');if(tEl)tEl.classList.remove('show');
   const acc=Math.round(L.firstTry/L.total*100), secs=Math.round((Date.now()-L.t0)/1000);
@@ -972,11 +1011,11 @@ function finish(){
   $('#again').textContent=ctx?(typeAt(PATH.done.length)==='review'?'לבחינה החוזרת':'לסבב הבא'):'שיעור נוסף';
   const mm=Math.floor(secs/60),ss=String(secs%60).padStart(2,'0');
   $('#stats').innerHTML=[['XP','#f2a01c','xp'],['דיוק','#3c9a3f','acc'],['רצף שיא','#d9443a','cmb'],['זמן','#3b82c4','tm']].map(([n,c,id])=>`<div class="stat" style="--c:${c}"><span>${n}</span><b id="s-${id}">0</b></div>`).join('');
-  countUp($('#s-xp'),L.xp,'');countUp($('#s-acc'),acc,'%');countUp($('#s-cmb'),L.maxCombo,'');$('#s-tm').textContent=mm+':'+ss;
+  setTimeout(()=>countUp($('#s-xp'),L.xp,'',true),1100);countUp($('#s-acc'),acc,'%');countUp($('#s-cmb'),L.maxCombo,'');$('#s-tm').textContent=mm+':'+ss;
   const w=[...L.wrong.values()];
   $('#redo').hidden=!w.length;
   $('#review').innerHTML=w.length?'<h3>מה כדאי לחזור עליו</h3>'+w.map(x=>`<div class="rv"><strong>${esc(x.item[1])}</strong><span class="p">${esc(x.picked)}</span><span class="a">${esc(x.item[2])}</span><span class="w">${esc(x.item[4])}</span></div>`).join(''):'';
-  setTimeout(()=>{SFX.win();buzz([30,60,30]);rain();const r=$('#trophy').getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,perfect?80:45,10,perfect?['#f5c33b','#ffe07a','#f2a01c','#fff']:null)},250);
+  setTimeout(()=>{SFX.win(perfect);buzz([30,60,30]);rain();const r=$('#trophy').getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,perfect?80:45,10,perfect?['#f5c33b','#ffe07a','#f2a01c','#fff']:null)},250);
   $('#again').focus({preventScroll:true});
 }
 $('#again').onclick=()=>{if(L.ctx){if(buildRound())startPathRound();else show('home')}else{show('home');launch(L.topic)}};

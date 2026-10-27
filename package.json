@@ -1,0 +1,7 @@
+{
+  "name": "bahad-quiz",
+  "private": true,
+  "dependencies": {
+    "@vercel/blob": "2.3.3"
+  }
+}

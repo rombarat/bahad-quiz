@@ -194,6 +194,34 @@ button:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
 .tip.review{color:var(--fire-deep)}
 @keyframes hover{50%{transform:translateY(-5px)}}
 .path-end{font:800 1rem var(--display);color:var(--muted);text-align:center}
+/* leaderboard */
+.board{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.bd-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bd-head b{font:900 1.15rem var(--display)}
+.bd-head span{display:flex;gap:10px;align-items:baseline;color:var(--muted);font-size:.88rem}
+.bd-note{margin:0;color:var(--muted);font-size:.95rem}
+.bd-chase{margin:0;background:var(--accent-soft);border-radius:12px;padding:8px 12px;font-weight:600}
+.bd-chase b{font-family:var(--display);color:var(--fire-deep)}
+.bd-chase.lead{background:color-mix(in srgb,var(--gold) 22%,var(--surface))}
+.bd-join{display:flex;gap:8px}
+.bd-join input,.modal input{flex:1;min-width:0;border:2px solid var(--line);border-radius:14px;padding:12px 14px;font:600 1rem var(--body);background:var(--bg);color:var(--fg)}
+.bd-join input:focus,.modal input:focus{outline:none;border-color:var(--sel)}
+.bd-join .big{width:auto;padding:12px 20px}
+.bd-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.bd-list li{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px}
+.bd-list li.me{background:var(--sel-soft);outline:2px solid var(--sel)}
+.bd-list li.gap{justify-content:center;color:var(--muted);padding:0}
+.rk{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:900 .95rem var(--display);background:var(--line);color:var(--muted);font-variant-numeric:tabular-nums}
+.rk.r0{background:var(--gold);color:#5a3d00}.rk.r1{background:#c9ced6;color:#3c434d}.rk.r2{background:#d99a62;color:#4a2a0e}
+.nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nm b{font:700 1rem var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm small{color:var(--muted);font-size:.8rem}
+.bd-bar{display:block;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.bd-bar i{display:block;height:100%;background:var(--good);border-radius:99px}
+.sc{flex:none;display:flex;flex-direction:column;align-items:center;font:900 1.15rem var(--display);font-variant-numeric:tabular-nums;line-height:1.1}
+.sc small{font:600 .7rem var(--body);color:var(--muted)}
+.overtake{margin:0;width:100%;box-sizing:border-box;background:var(--fire);color:#fff;border-radius:16px;padding:12px 16px;font:900 1.1rem var(--display);box-shadow:0 4px 0 var(--fire-deep);animation:drop .6s cubic-bezier(.2,1.6,.4,1)}
+.overtake small{display:block;font:600 .9rem var(--body);opacity:.95}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:35}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 body{margin:0}
@@ -225,6 +253,7 @@ body{margin:0}
           <button class="seg" id="len20" data-n="20" aria-pressed="false">20 · ~10 דק׳</button>
         </div>
       </div>
+      <div class="board" id="board"></div>
       <div class="path" id="path"></div>
       <h2 class="sec-title">תרגול חופשי לפי נושא</h2>
       <button class="toggle" id="onlyNew" aria-pressed="false"><span class="sw"></span><span>רק שאלות שעוד לא עניתי עליהן נכון</span></button>
@@ -264,6 +293,7 @@ body{margin:0}
       <h2 id="doneTitle"></h2>
       <p class="sub" id="doneSub"></p>
       <div class="stats" id="stats"></div>
+      <p class="overtake" id="overtake" hidden></p>
       <div class="done-actions">
         <button class="big" id="again">שיעור נוסף</button>
         <button class="big ghost" id="redo" hidden>תרגל רק את הטעויות</button>
@@ -879,7 +909,7 @@ $('#onlyNew').onclick=()=>{ONLY=!ONLY;store.set('bq-only',ONLY);SFX.tap();drawHo
 $('#reset').onclick=()=>{const m=document.createElement('div');m.className='modal';m.innerHTML='<div class="box"><h3>לאפס את ההתקדמות?</h3><p>כל השאלות יסומנו שוב כחדשות.</p><button class="big no" id="doReset">איפוס</button><button class="big ghost" id="noReset">ביטול</button></div>';document.body.appendChild(m);$('#noReset').focus();$('#noReset').onclick=()=>m.remove();$('#doReset').onclick=()=>{DONE.clear();saveDone();PATH={done:[]};savePath();m.remove();drawHome()};m.onclick=e=>{if(e.target===m)m.remove()}};
 function drawLen(){$$('.seg').forEach(s=>s.setAttribute('aria-pressed',+s.dataset.n===LEN))}
 $$('.seg').forEach(s=>s.onclick=()=>{LEN=+s.dataset.n;store.set('bq-len',LEN);drawLen();drawPath();SFX.tap()});
-function show(id){['home','lesson','done'].forEach(s=>$('#'+s).hidden=s!==id);if(id==='home'){drawHome();const c=$('.node.cur');if(c)requestAnimationFrame(()=>c.scrollIntoView({block:'center'}))}}
+function show(id){['home','lesson','done'].forEach(s=>$('#'+s).hidden=s!==id);pollBoard(id==='home');if(id==='home'){drawHome();const c=$('.node.cur');if(c)requestAnimationFrame(()=>c.scrollIntoView({block:'center'}))}}
 
 /* ---------- PATH ---------- */
 const PER=5; // learn rounds per stage, then a review
@@ -929,6 +959,44 @@ $('#path').onclick=e=>{const b=e.target.closest('.node');if(!b||b.disabled)retur
   if(i<PATH.done.length){const r=PATH.done[i];startLesson(shuffle(r.qs.map(j=>D[j])),null,{replay:true,t:r.t,i});return}
   startPathRound()};
 function startPathRound(){const r=buildRound();if(!r){show('home');return}startLesson(r.qs.map(j=>D[j]),null,{t:r.t,i:PATH.done.length,qs:r.qs})}
+
+/* ---------- LEADERBOARD (Vercel function /api/leaderboard) ---------- */
+const API='/api/leaderboard';
+let ME=store.get('bq-me',null), BOARD=null, boardOk=false, TOTALXP=store.get('bq-xp',0);
+const rid=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return [...a].map(b=>'abcdefghijklmnopqrstuvwxyz0123456789'[b%36]).join('')};
+function myStats(){const cur=PATH.done.length;return {correct:DONE.size,rounds:cur,stage:Math.floor(cur/(PER+1))+1,xp:TOTALXP}}
+async function api(method,body){const r=await fetch(API,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});if(!r.ok)throw new Error(r.status);return r.json()}
+async function loadBoard(){try{BOARD=(await api('GET')).players;boardOk=true}catch(e){boardOk=false}drawBoard()}
+async function syncMe(){if(!ME)return null;try{BOARD=(await api('POST',{...ME,...myStats()})).players;boardOk=true}catch(e){boardOk=false}drawBoard();return BOARD}
+const rankOf=(b,id)=>b?b.findIndex(p=>p.id===id):-1;
+function stageLabel(p){const r=p.rounds%(PER+1);return `שלב ${p.stage} · ${r===PER?'בחינה חוזרת':'סבב '+(r+1)}`}
+function drawBoard(){
+  const el=$('#board');if(!el)return;
+  if(!boardOk&&!BOARD){el.hidden=false;el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b></div><p class="bd-note">הטבלה לא זמינה כרגע. ההתקדמות שלך נשמרת בכל מקרה.</p>`;return}
+  el.hidden=false;
+  if(!ME){el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b><span>${BOARD?BOARD.length:0} משתתפים</span></div>
+    <p class="bd-note">כתוב שם כדי להיכנס לטבלה ולראות איפה כולם נמצאים.</p>
+    <form class="bd-join" id="joinForm"><input id="joinName" maxlength="20" placeholder="השם שלך" autocomplete="nickname" required><button class="big" type="submit">הצטרף</button></form>
+    ${rows(BOARD||[],5)}`;
+    $('#joinForm').onsubmit=async e=>{e.preventDefault();const n=$('#joinName').value.trim();if(!n)return;ME={id:rid(16),secret:rid(32),name:n.slice(0,20)};store.set('bq-me',ME);SFX.unlock();await syncMe();toast('ברוך הבא לטבלה, '+ME.name+'!')};
+    return}
+  const b=BOARD||[],r=rankOf(b,ME.id),me=b[r];
+  let chase='';
+  if(r>0){const ahead=b[r-1],gap=ahead.correct-(me?me.correct:0)+1;chase=`<p class="bd-chase">עוד <b>${gap}</b> תשובות נכונות כדי לעקוף את <b>${esc(ahead.name)}</b></p>`}
+  else if(r===0&&b.length>1)chase=`<p class="bd-chase lead">אתה במקום הראשון! ${esc(b[1].name)} במרחק ${b[0].correct-b[1].correct} תשובות</p>`;
+  el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button></span></div>${chase}${rows(b,8)}`;
+  $('#rename').onclick=()=>{const m=document.createElement('div');m.className='modal';m.innerHTML=`<form class="box" id="rnForm"><h3>שינוי שם</h3><input id="rnName" maxlength="20" value="${esc(ME.name)}" required><button class="big" type="submit">שמור</button><button class="big ghost" type="button" id="rnCancel">ביטול</button></form>`;document.body.appendChild(m);$('#rnName').focus();$('#rnCancel').onclick=()=>m.remove();$('#rnForm').onsubmit=e=>{e.preventDefault();const n=$('#rnName').value.trim();if(n){ME.name=n.slice(0,20);store.set('bq-me',ME);syncMe()}m.remove()};m.onclick=e=>{if(e.target===m)m.remove()}};
+}
+function rows(b,max){
+  if(!b.length)return '<p class="bd-note">עוד אין משתתפים. תהיה הראשון!</p>';
+  const r=ME?rankOf(b,ME.id):-1;let idx=[...Array(Math.min(max,b.length)).keys()];
+  if(r>=max)idx=[...idx.slice(0,max-2),-1,r-1,r].filter((x,i,a)=>a.indexOf(x)===i);
+  const top=Math.max(1,b[0].correct);
+  return '<ol class="bd-list">'+idx.map(i=>{if(i===-1)return '<li class="gap">···</li>';const p=b[i],mine=ME&&p.id===ME.id;
+    return `<li class="${mine?'me':''}"><span class="rk ${i<3?'r'+i:''}">${i+1}</span><span class="nm"><b>${esc(p.name)}${mine?' (אתה)':''}</b><small>${stageLabel(p)}</small><i class="bd-bar"><i style="width:${p.correct/top*100}%"></i></i></span><span class="sc">${p.correct}<small>נכונות</small></span></li>`}).join('')+'</ol>';
+}
+let boardTimer=0;
+function pollBoard(on){clearInterval(boardTimer);if(on){loadBoard();boardTimer=setInterval(()=>{if(!document.hidden)loadBoard()},30000)}}
 
 /* ---------- LESSON-JS ---------- */
 const OK_WORDS=['מעולה!','בול!','יפה מאוד!','כל הכבוד!','מצוין!','חזק!','ככה עושים את זה!','מדויק!'];
@@ -1025,13 +1093,21 @@ function finish(){
   const tEl=$('#toast');if(tEl)tEl.classList.remove('show');
   const acc=Math.round(L.firstTry/L.total*100), secs=Math.round((Date.now()-L.t0)/1000);
   const perfect=L.wrong.size===0; if(perfect)L.xp+=10;
-  sessXp+=L.xp;$('#sessXp').textContent=sessXp;
+  sessXp+=L.xp;$('#sessXp').textContent=sessXp;TOTALXP+=L.xp;store.set('bq-xp',TOTALXP);
   const ctx=L.ctx;let pathMsg='';
   if(ctx&&!ctx.replay){PATH.done.push({t:ctx.t,qs:ctx.qs,wrong:[...L.wrong.values()].map(x=>IDX.get(x.item)),acc});savePath()}
   if(ctx){const pos=ctx.i%(PER+1),stage=Math.floor(ctx.i/(PER+1))+1;
     if(ctx.t==='review')pathMsg=`שלב ${stage} הושלם! השלב הבא נפתח`;
     else{const leftR=PER-pos-1;pathMsg=`סבב ${pos+1} מתוך ${PER} בשלב ${stage}`+(leftR?` · עוד ${leftR} עד הבחינה החוזרת`:' · הבא בתור: בחינה חוזרת')}}
   show('done');
+  $('#overtake').hidden=true;
+  if(ME){const before=BOARD?BOARD.slice():null,oldR=rankOf(before,ME.id);
+    syncMe().then(after=>{if(!after)return;const nr=rankOf(after,ME.id);if(nr<0)return;
+      const passed=before&&oldR>=0?before.slice(nr,oldR).filter(p=>p.id!==ME.id).map(p=>p.name):[];
+      const o=$('#overtake');
+      if(passed.length){o.innerHTML=`עקפת את ${passed.slice(0,3).map(esc).join(', ')}${passed.length>3?' ועוד '+(passed.length-3):''}!<small>אתה עכשיו במקום ${nr+1} מתוך ${after.length}</small>`;o.hidden=false;setTimeout(()=>{SFX.combo(10);const r=o.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,60,10,['#f2a01c','#f5c33b','#ffe07a','#d9443a'])},900)}
+      else if(nr>0){const a=after[nr-1];o.innerHTML=`מקום ${nr+1} מתוך ${after.length}<small>עוד ${a.correct-after[nr].correct+1} תשובות נכונות כדי לעקוף את ${esc(a.name)}</small>`;o.hidden=false}
+      else if(after.length>1){o.innerHTML=`אתה במקום הראשון!<small>${esc(after[1].name)} במרחק ${after[0].correct-after[1].correct} תשובות</small>`;o.hidden=false}})}
   $('#trophy').innerHTML=TROPHY;
   const t=$('#doneTitle');t.className=perfect?'perfect':'';
   t.textContent=perfect?'שיעור מושלם!':acc>=80?'השיעור הושלם!':acc>=50?'סיימת! עוד קצת תרגול':'סיימת! כל טעות היא למידה';
@@ -1060,7 +1136,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();$('#check').click()}
 });
 
-drawSnd();drawLen();drawHome();
+drawSnd();drawLen();drawHome();pollBoard(true);if(ME)syncMe();
 </script>
 </body>
 </html>

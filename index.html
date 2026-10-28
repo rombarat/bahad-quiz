@@ -222,6 +222,13 @@ button:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
 .sc small{font:600 .7rem var(--body);color:var(--muted)}
 .overtake{margin:0;width:100%;box-sizing:border-box;background:var(--fire);color:#fff;border-radius:16px;padding:12px 16px;font:900 1.1rem var(--display);box-shadow:0 4px 0 var(--fire-deep);animation:drop .6s cubic-bezier(.2,1.6,.4,1)}
 .overtake small{display:block;font:600 .9rem var(--body);opacity:.95}
+.bd-sync{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:2px solid var(--line);padding-top:12px}
+.bd-sync .big{width:auto;padding:10px 18px;font-size:.98rem}
+.rd{display:flex;gap:8px}
+.rd .big{width:auto}
+#rdCode{text-align:center;letter-spacing:.3em;font:800 1.3rem var(--display);text-transform:uppercase;direction:ltr}
+.code{font:900 2.4rem var(--display);letter-spacing:.25em;direction:ltr;color:var(--accent);background:var(--accent-soft);border-radius:16px;padding:14px 8px;font-variant-numeric:tabular-nums;user-select:all}
+.err{margin:0;color:var(--bad-ink);font-weight:700}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:35}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 body{margin:0}
@@ -238,7 +245,7 @@ body{margin:0}
         <p>סבבים קצרים · בחינה חוזרת כל 5 סבבים · הסבר אחרי כל תשובה</p>
       </div>
       <div class="head-tools">
-        <span class="xp-pill" title="XP שצברת עכשיו"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span id="sessXp">0</span></span>
+        <span class="xp-pill" title="סך ה-XP שלך"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span id="sessXp">0</span></span>
         <button class="icon-btn snd" aria-label="השתק צלילים"></button>
       </div>
     </div>
@@ -960,43 +967,85 @@ $('#path').onclick=e=>{const b=e.target.closest('.node');if(!b||b.disabled)retur
   startPathRound()};
 function startPathRound(){const r=buildRound();if(!r){show('home');return}startLesson(r.qs.map(j=>D[j]),null,{t:r.t,i:PATH.done.length,qs:r.qs})}
 
-/* ---------- LEADERBOARD (Vercel function /api/leaderboard) ---------- */
+/* ---------- LEADERBOARD + DEVICE SYNC (Vercel function /api/leaderboard) ---------- */
 const API='/api/leaderboard';
 let ME=store.get('bq-me',null), BOARD=null, boardOk=false, TOTALXP=store.get('bq-xp',0);
+// XP wasn't tracked before the leaderboard existed: every correctly answered question is worth at least 10 XP
+function xpFloor(){const f=DONE.size*10;if(TOTALXP<f){TOTALXP=f;store.set('bq-xp',TOTALXP)}}
+xpFloor();
 const rid=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return [...a].map(b=>'abcdefghijklmnopqrstuvwxyz0123456789'[b%36]).join('')};
 function myStats(){const cur=PATH.done.length;return {correct:DONE.size,rounds:cur,stage:Math.floor(cur/(PER+1))+1,xp:TOTALXP}}
-async function api(method,body){const r=await fetch(API,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});if(!r.ok)throw new Error(r.status);return r.json()}
+const myProgress=()=>({done:[...DONE],path:PATH,xp:TOTALXP});
+async function api(method,body){const r=await fetch(API,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||r.status);e.status=r.status;throw e}return j}
 async function loadBoard(){try{BOARD=(await api('GET')).players;boardOk=true}catch(e){boardOk=false}drawBoard()}
-async function syncMe(){if(!ME)return null;try{BOARD=(await api('POST',{...ME,...myStats()})).players;boardOk=true}catch(e){boardOk=false}drawBoard();return BOARD}
+async function syncMe(){if(!ME)return null;try{BOARD=(await api('POST',{action:'save',...ME,...myStats(),progress:myProgress()})).players;boardOk=true}catch(e){boardOk=false}drawBoard();return BOARD}
+function drawXp(){$('#sessXp').textContent=TOTALXP}
+// merge progress from another device: answered questions are combined, the longer path wins, highest XP wins
+function mergeProgress(p){
+  if(!p)return false;let changed=false;
+  (p.done||[]).forEach(i=>{if(i<D.length&&!DONE.has(i)){DONE.add(i);changed=true}});
+  if(p.path&&Array.isArray(p.path.done)&&p.path.done.length>PATH.done.length){PATH={done:p.path.done};changed=true}
+  if((p.xp||0)>TOTALXP){TOTALXP=p.xp;changed=true}
+  if(changed){saveDone();savePath();xpFloor();store.set('bq-xp',TOTALXP);drawXp()}
+  return changed}
+async function pullMe(){if(!ME)return;try{const r=await api('POST',{action:'pull',id:ME.id,secret:ME.secret});if(mergeProgress(r.progress)&&!$('#home').hidden)drawHome()}catch(e){}}
+async function redeem(code){
+  const r=await api('POST',{action:'redeem',code});
+  ME={id:r.id,secret:r.secret,name:r.name};store.set('bq-me',ME);
+  mergeProgress(r.progress);await syncMe();show('home');
+  SFX.unlock();toast('מסונכרן! ברוך הבא, '+ME.name);
+  const h=$('#home .home-body');burst(innerWidth/2,180,60,9)}
 const rankOf=(b,id)=>b?b.findIndex(p=>p.id===id):-1;
 function stageLabel(p){const r=p.rounds%(PER+1);return `שלב ${p.stage} · ${r===PER?'בחינה חוזרת':'סבב '+(r+1)}`}
+function modal(html){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="box">${html}</div>`;document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()};return m}
+function codeModal(prefill){
+  const m=modal(`<h3>חיבור למכשיר קיים</h3><p>בטלפון (או במכשיר שבו כבר שיחקת) לחץ על "סנכרון מכשיר" והקלד כאן את הקוד.</p>
+    <form id="rdForm" class="rd"><input id="rdCode" maxlength="7" placeholder="קוד בן 6 תווים" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" value="${esc(prefill||'')}" required><button class="big" type="submit">התחבר</button></form>
+    <p class="err" id="rdErr" hidden></p>${ME?'<p class="bd-note">שים לב: המכשיר הזה יעבור למשתמש של הקוד. ההתקדמות כאן תתמזג איתו.</p>':''}<button class="big ghost" type="button" id="rdCancel">ביטול</button>`);
+  $('#rdCode').focus();$('#rdCancel').onclick=()=>m.remove();
+  $('#rdForm').onsubmit=async e=>{e.preventDefault();const b=$('#rdForm .big');b.disabled=true;b.textContent='מתחבר...';
+    try{await redeem($('#rdCode').value);m.remove()}catch(err){$('#rdErr').hidden=false;$('#rdErr').textContent=err.status===404?'הקוד לא נמצא או שפג תוקפו. צור קוד חדש בטלפון.':'משהו השתבש. בדוק את החיבור ונסה שוב.';b.disabled=false;b.textContent='התחבר';SFX.no()}}}
+async function linkModal(){
+  const m=modal(`<h3>סנכרון למכשיר נוסף</h3><p>במכשיר השני פתח את האתר, לחץ "יש לי קוד" והקלד:</p><div class="code" id="lkCode">······</div><p class="bd-note" id="lkNote">יוצר קוד...</p>
+    <button class="big" type="button" id="lkCopy" disabled>העתק קישור</button><button class="big ghost" type="button" id="lkClose">סגור</button>`);
+  $('#lkClose').onclick=()=>m.remove();
+  try{const r=await api('POST',{action:'mkcode',id:ME.id,secret:ME.secret});
+    $('#lkCode').textContent=r.code;$('#lkNote').textContent=`הקוד תקף ל-${r.expiresInMin} דקות ולשימוש אחד. אפשר גם לשלוח לעצמך את הקישור.`;
+    const url=location.origin+'/?code='+r.code;const c=$('#lkCopy');c.disabled=false;
+    c.onclick=async()=>{try{await navigator.clipboard.writeText(url);c.textContent='הקישור הועתק';SFX.select()}catch(e){c.textContent=url}}}
+  catch(e){$('#lkNote').textContent='לא הצלחתי ליצור קוד. בדוק את החיבור ונסה שוב.'}}
 function drawBoard(){
-  const el=$('#board');if(!el)return;
-  if(!boardOk&&!BOARD){el.hidden=false;el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b></div><p class="bd-note">הטבלה לא זמינה כרגע. ההתקדמות שלך נשמרת בכל מקרה.</p>`;return}
-  el.hidden=false;
+  const el=$('#board');if(!el)return;el.hidden=false;
+  if(!boardOk&&!BOARD){el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b></div><p class="bd-note">הטבלה לא זמינה כרגע. ההתקדמות שלך נשמרת בכל מקרה.</p>`;return}
   if(!ME){el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b><span>${BOARD?BOARD.length:0} משתתפים</span></div>
     <p class="bd-note">כתוב שם כדי להיכנס לטבלה ולראות איפה כולם נמצאים.</p>
     <form class="bd-join" id="joinForm"><input id="joinName" maxlength="20" placeholder="השם שלך" autocomplete="nickname" required><button class="big" type="submit">הצטרף</button></form>
+    <button class="link" id="haveCode">כבר משחק בטלפון או במחשב אחר? יש לי קוד</button>
     ${rows(BOARD||[],5)}`;
+    $('#haveCode').onclick=()=>codeModal();
     $('#joinForm').onsubmit=async e=>{e.preventDefault();const n=$('#joinName').value.trim();if(!n)return;ME={id:rid(16),secret:rid(32),name:n.slice(0,20)};store.set('bq-me',ME);SFX.unlock();await syncMe();toast('ברוך הבא לטבלה, '+ME.name+'!')};
     return}
   const b=BOARD||[],r=rankOf(b,ME.id),me=b[r];
   let chase='';
-  if(r>0){const ahead=b[r-1],gap=ahead.correct-(me?me.correct:0)+1;chase=`<p class="bd-chase">עוד <b>${gap}</b> תשובות נכונות כדי לעקוף את <b>${esc(ahead.name)}</b></p>`}
-  else if(r===0&&b.length>1)chase=`<p class="bd-chase lead">אתה במקום הראשון! ${esc(b[1].name)} במרחק ${b[0].correct-b[1].correct} תשובות</p>`;
-  el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button></span></div>${chase}${rows(b,8)}`;
-  $('#rename').onclick=()=>{const m=document.createElement('div');m.className='modal';m.innerHTML=`<form class="box" id="rnForm"><h3>שינוי שם</h3><input id="rnName" maxlength="20" value="${esc(ME.name)}" required><button class="big" type="submit">שמור</button><button class="big ghost" type="button" id="rnCancel">ביטול</button></form>`;document.body.appendChild(m);$('#rnName').focus();$('#rnCancel').onclick=()=>m.remove();$('#rnForm').onsubmit=e=>{e.preventDefault();const n=$('#rnName').value.trim();if(n){ME.name=n.slice(0,20);store.set('bq-me',ME);syncMe()}m.remove()};m.onclick=e=>{if(e.target===m)m.remove()}};
+  if(r>0){const ahead=b[r-1],gap=ahead.xp-(me?me.xp:0)+1;chase=`<p class="bd-chase">עוד <b>${gap} XP</b> כדי לעקוף את <b>${esc(ahead.name)}</b></p>`}
+  else if(r===0&&b.length>1)chase=`<p class="bd-chase lead">אתה במקום הראשון! ${esc(b[1].name)} במרחק ${b[0].xp-b[1].xp} XP</p>`;
+  el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button></span></div>${chase}${rows(b,8)}
+    <div class="bd-sync"><button class="big ghost" id="linkDev">סנכרון מכשיר</button><button class="link" id="haveCode2">יש לי קוד ממכשיר אחר</button></div>`;
+  $('#linkDev').onclick=linkModal;$('#haveCode2').onclick=()=>codeModal();
+  $('#rename').onclick=()=>{const m=modal(`<form id="rnForm" class="rd" style="flex-direction:column"><h3>שינוי שם</h3><input id="rnName" maxlength="20" value="${esc(ME.name)}" required><button class="big" type="submit">שמור</button><button class="big ghost" type="button" id="rnCancel">ביטול</button></form>`);$('#rnName').focus();$('#rnCancel').onclick=()=>m.remove();$('#rnForm').onsubmit=e=>{e.preventDefault();const n=$('#rnName').value.trim();if(n){ME.name=n.slice(0,20);store.set('bq-me',ME);syncMe()}m.remove()}};
 }
 function rows(b,max){
   if(!b.length)return '<p class="bd-note">עוד אין משתתפים. תהיה הראשון!</p>';
   const r=ME?rankOf(b,ME.id):-1;let idx=[...Array(Math.min(max,b.length)).keys()];
   if(r>=max)idx=[...idx.slice(0,max-2),-1,r-1,r].filter((x,i,a)=>a.indexOf(x)===i);
-  const top=Math.max(1,b[0].correct);
+  const top=Math.max(1,b[0].xp);
   return '<ol class="bd-list">'+idx.map(i=>{if(i===-1)return '<li class="gap">···</li>';const p=b[i],mine=ME&&p.id===ME.id;
-    return `<li class="${mine?'me':''}"><span class="rk ${i<3?'r'+i:''}">${i+1}</span><span class="nm"><b>${esc(p.name)}${mine?' (אתה)':''}</b><small>${stageLabel(p)}</small><i class="bd-bar"><i style="width:${p.correct/top*100}%"></i></i></span><span class="sc">${p.correct}<small>נכונות</small></span></li>`}).join('')+'</ol>';
+    return `<li class="${mine?'me':''}"><span class="rk ${i<3?'r'+i:''}">${i+1}</span><span class="nm"><b>${esc(p.name)}${mine?' (אתה)':''}</b><small>${stageLabel(p)} · ${p.correct} נכונות</small><i class="bd-bar"><i style="width:${p.xp/top*100}%"></i></i></span><span class="sc">${p.xp}<small>XP</small></span></li>`}).join('')+'</ol>';
 }
 let boardTimer=0;
 function pollBoard(on){clearInterval(boardTimer);if(on){loadBoard();boardTimer=setInterval(()=>{if(!document.hidden)loadBoard()},30000)}}
+// bring progress from other devices when returning to the tab
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ME&&!$('#home').hidden)pullMe().then(syncMe)});
 
 /* ---------- LESSON-JS ---------- */
 const OK_WORDS=['מעולה!','בול!','יפה מאוד!','כל הכבוד!','מצוין!','חזק!','ככה עושים את זה!','מדויק!'];
@@ -1093,7 +1142,7 @@ function finish(){
   const tEl=$('#toast');if(tEl)tEl.classList.remove('show');
   const acc=Math.round(L.firstTry/L.total*100), secs=Math.round((Date.now()-L.t0)/1000);
   const perfect=L.wrong.size===0; if(perfect)L.xp+=10;
-  sessXp+=L.xp;$('#sessXp').textContent=sessXp;TOTALXP+=L.xp;store.set('bq-xp',TOTALXP);
+  sessXp+=L.xp;TOTALXP+=L.xp;store.set('bq-xp',TOTALXP);drawXp();
   const ctx=L.ctx;let pathMsg='';
   if(ctx&&!ctx.replay){PATH.done.push({t:ctx.t,qs:ctx.qs,wrong:[...L.wrong.values()].map(x=>IDX.get(x.item)),acc});savePath()}
   if(ctx){const pos=ctx.i%(PER+1),stage=Math.floor(ctx.i/(PER+1))+1;
@@ -1106,8 +1155,8 @@ function finish(){
       const passed=before&&oldR>=0?before.slice(nr,oldR).filter(p=>p.id!==ME.id).map(p=>p.name):[];
       const o=$('#overtake');
       if(passed.length){o.innerHTML=`עקפת את ${passed.slice(0,3).map(esc).join(', ')}${passed.length>3?' ועוד '+(passed.length-3):''}!<small>אתה עכשיו במקום ${nr+1} מתוך ${after.length}</small>`;o.hidden=false;setTimeout(()=>{SFX.combo(10);const r=o.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,60,10,['#f2a01c','#f5c33b','#ffe07a','#d9443a'])},900)}
-      else if(nr>0){const a=after[nr-1];o.innerHTML=`מקום ${nr+1} מתוך ${after.length}<small>עוד ${a.correct-after[nr].correct+1} תשובות נכונות כדי לעקוף את ${esc(a.name)}</small>`;o.hidden=false}
-      else if(after.length>1){o.innerHTML=`אתה במקום הראשון!<small>${esc(after[1].name)} במרחק ${after[0].correct-after[1].correct} תשובות</small>`;o.hidden=false}})}
+      else if(nr>0){const a=after[nr-1];o.innerHTML=`מקום ${nr+1} מתוך ${after.length}<small>עוד ${a.xp-after[nr].xp+1} XP כדי לעקוף את ${esc(a.name)}</small>`;o.hidden=false}
+      else if(after.length>1){o.innerHTML=`אתה במקום הראשון!<small>${esc(after[1].name)} במרחק ${after[0].xp-after[1].xp} XP</small>`;o.hidden=false}})}
   $('#trophy').innerHTML=TROPHY;
   const t=$('#doneTitle');t.className=perfect?'perfect':'';
   t.textContent=perfect?'שיעור מושלם!':acc>=80?'השיעור הושלם!':acc>=50?'סיימת! עוד קצת תרגול':'סיימת! כל טעות היא למידה';
@@ -1136,7 +1185,9 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();$('#check').click()}
 });
 
-drawSnd();drawLen();drawHome();pollBoard(true);if(ME)syncMe();
+drawSnd();drawLen();drawHome();drawXp();pollBoard(true);
+if(ME)pullMe().then(syncMe);
+(()=>{const q=new URLSearchParams(location.search).get('code');if(!q)return;history.replaceState(null,'',location.pathname);codeModal(q.toUpperCase())})();
 </script>
 </body>
 </html>

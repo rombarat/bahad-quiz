@@ -9,6 +9,7 @@ import { setSessionCookie } from './_lib/session.mjs';
 import { accessFor } from './_lib/access.mjs';
 import { claimPayments } from './_lib/billing.mjs';
 import { cancelMonthly, SumitError } from './_lib/sumit.mjs';
+import { notify, adminLink } from './_lib/notify.mjs';
 
 const body = req => typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
 
@@ -52,6 +53,15 @@ export default async function handler(req, res) {
         }
       }
       await sql`update subscriptions set status = ${status}, updated_at = now() where user_id = ${a.userId}`;
+      const until = a.access.paidUntil ? new Date(a.access.paidUntil).toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' }) : '';
+      await notify(status === 'canceled' ? `מנוי בוטל: ${a.user.email}` : `בקשת ביטול מנוי: ${a.user.email}`, [
+        `${a.user.name || ''} (${a.user.email}) ביקש/ה לבטל את המנוי.`,
+        status === 'canceled'
+          ? 'הוראת הקבע בוטלה אוטומטית בסאמיט. אין צורך לעשות כלום.'
+          : 'מה לעשות: לבטל את הוראת הקבע של הלקוח בסאמיט לפני החיוב הבא, ואז לסמן "ביטלתי בסאמיט" בדף הניהול.',
+        until && `הגישה נשארת פתוחה עד ${until}.`,
+        `דף הניהול: ${adminLink(req)}`
+      ]);
       const after = await accessFor(req);
       return res.status(200).json({ user: after.user, signedIn: true, access: after.access });
     }

@@ -7,6 +7,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { sql } from './_lib/db.mjs';
 import { applyPayment } from './_lib/billing.mjs';
+import { notify, adminLink } from './_lib/notify.mjs';
 
 const EMAIL = /^[^\s@<>"']+@[^\s@<>"']+\.[a-z]{2,}$/i;
 
@@ -69,9 +70,20 @@ export default async function handler(req, res) {
     const [ev] = await sql`insert into webhook_events (body) values (${raw}) returning id`;
     const f = extract(body);
     const ref = f.id ? `sumit-${f.id}` : `hook-${createHash('sha256').update(raw).digest('hex').slice(0, 24)}`;
-    if (!f.email && !f.customerId) return res.status(200).json({ ok: true, matched: false, note: 'no customer email in payload' });
+    const unmatched = what => notify(`תשלום שלא שויך למשתמש${f.email ? ': ' + f.email : ''}`, [
+      what,
+      f.amount != null && `סכום: ${f.amount}`,
+      'אם המשלם התחבר לאפליקציה עם מייל אחר, הוסיפו לו חודש לפי המייל שלו בדף הניהול.',
+      `דף הניהול: ${adminLink(req)}`
+    ]);
+    if (!f.email && !f.customerId) {
+      await unmatched('הגיע עדכון תשלום מסאמיט בלי מייל של לקוח. כדאי לבדוק אותו בדף הניהול.');
+      return res.status(200).json({ ok: true, matched: false, note: 'no customer email in payload' });
+    }
     const r = await applyPayment({ ref, email: f.email, customerId: f.customerId, amount: f.amount, kind: 'webhook' });
     if (r.userId) await sql`update webhook_events set matched = true where id = ${ev.id}`;
+    // the payer may simply not have signed in yet; the access opens by itself when they do, but tell the owner
+    else if (r.isNew) await unmatched(`התקבל תשלום מ־${f.email || 'לקוח בלי מייל'}, ואין עדיין משתמש באפליקציה עם המייל הזה. אם יתחבר עם המייל הזה, הגישה תיפתח לו לבד.`);
     return res.status(200).json({ ok: true, matched: !!r.userId });
   } catch (e) {
     console.error('sumit-webhook', e && e.message);

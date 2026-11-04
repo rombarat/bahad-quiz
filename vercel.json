@@ -1,24 +1,47 @@
 {
   "functions": {
-    "api/questions.mjs": { "includeFiles": "api/_data/**" }
+    "api/questions.mjs": {
+      "includeFiles": "api/_data/**"
+    }
   },
   "crons": [
-    { "path": "/api/cron-renew", "schedule": "17 3 * * *" }
+    {
+      "path": "/api/cron-renew",
+      "schedule": "17 3 * * *"
+    }
   ],
   "headers": [
     {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache" },
-        { "key": "Service-Worker-Allowed", "value": "/" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
       ]
     },
     {
       "source": "/manifest.webmanifest",
       "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json" },
-        { "key": "Cache-Control", "value": "no-cache" }
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/api/admin"
     }
   ]
 }

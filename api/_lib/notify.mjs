@@ -22,9 +22,8 @@ export async function notify(subject, lines) {
   }
 }
 
-// Link to the owner's page, with the key so it opens straight from the email.
+// Link to the owner's page (it asks for the admin username and password).
 export function adminLink(req) {
   const host = (req && req.headers && (req.headers['x-forwarded-host'] || req.headers.host)) || 'bahad-quiz.vercel.app';
-  const k = process.env.ADMIN_KEY ? `?key=${encodeURIComponent(process.env.ADMIN_KEY)}` : '';
-  return `https://${host}/api/admin${k}`;
+  return `https://${host}/admin`;
 }

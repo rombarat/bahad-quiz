@@ -1636,8 +1636,9 @@ $('#installGo').onclick=async()=>{SFX.tap();
   if(installEvt){installEvt.prompt();const r=await installEvt.userChoice.catch(()=>null);installEvt=null;if(r&&r.outcome!=='accepted')drawInstall();else $('#install').hidden=true;return}
   const share='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11v9h12v-9"/></svg>';
   const plus='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+  backup(true);
   const m=document.createElement('div');m.className='modal';
-  m.innerHTML=`<div class="box" role="dialog" aria-label="התקנה באייפון"><h3>התקנה באייפון</h3><p>פותחים את האתר ב-Safari, ואז:</p><ol class="steps"><li><span class="n">1</span><span>לוחצים על כפתור השיתוף ${share} בתחתית המסך</span></li><li><span class="n">2</span><span>גוללים ובוחרים ״הוספה למסך הבית״ ${plus}</span></li><li><span class="n">3</span><span>לוחצים ״הוסף״ בפינה העליונה</span></li></ol><button class="big" id="iosOk">הבנתי</button></div>`;
+  m.innerHTML=`<div class="box" role="dialog" aria-label="התקנה באייפון"><h3>התקנה באייפון</h3><p>פותחים את האתר ב-Safari, ואז:</p><ol class="steps"><li><span class="n">1</span><span>לוחצים על כפתור השיתוף ${share} בתחתית המסך</span></li><li><span class="n">2</span><span>גוללים ובוחרים ״הוספה למסך הבית״ ${plus}</span></li><li><span class="n">3</span><span>לוחצים ״הוסף״ בפינה העליונה</span></li></ol><p>ההתקדמות שלך תעבור לאפליקציה אוטומטית.</p><button class="big" id="iosOk">הבנתי</button></div>`;
   document.body.appendChild(m);$('#iosOk').focus();$('#iosOk').onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()}};
 drawInstall();
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
@@ -1705,9 +1706,32 @@ xpFloor();
 const rid=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return [...a].map(b=>'abcdefghijklmnopqrstuvwxyz0123456789'[b%36]).join('')};
 function myStats(){const cur=PATH.done.length;return {correct:DONE.size,rounds:cur,stage:Math.floor(cur/(PER+1))+1,xp:TOTALXP}}
 const myProgress=()=>({done:[...DONE],path:PATH,xp:TOTALXP});
+// ACCT: every device has an account (id+secret), even before joining the board, and its progress is backed up silently.
+// It is mirrored into a cookie because iOS copies Safari's cookies (and nothing else) into a newly installed home-screen app;
+// on its first launch the installed app finds the cookie, adopts the same account and pulls the progress.
+const getCookie=k=>{const m=document.cookie.match(new RegExp('(?:^|; )'+k+'=([^;]*)'));return m?decodeURIComponent(m[1]):null};
+let ACCT=store.get('bq-acct',null)||(ME?{id:ME.id,secret:ME.secret}:null);
+if(!ACCT){const m=(getCookie('bq_acct')||'').match(/^([a-z0-9]{10,32})\.([a-z0-9]{16,64})$/);if(m){ACCT={id:m[1],secret:m[2]};store.set('bq-adopt',1)}}
+if(!ACCT)ACCT={id:rid(16),secret:rid(32)};
+function saveAcct(){store.set('bq-acct',ACCT);try{document.cookie=`bq_acct=${ACCT.id}.${ACCT.secret}; max-age=34560000; path=/; SameSite=Lax${location.protocol==='https:'?'; Secure':''}`}catch(e){}}
+saveAcct();
 async function api(method,body){const r=await fetch(API,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||r.status);e.status=r.status;throw e}return j}
 async function loadBoard(){try{BOARD=(await api('GET')).players;boardOk=true}catch(e){boardOk=false}drawBoard()}
 async function syncMe(){if(!ME)return null;try{BOARD=(await api('POST',{action:'save',...ME,...myStats(),progress:myProgress()})).players;boardOk=true}catch(e){boardOk=false}drawBoard();return BOARD}
+let lastBackup=0;
+async function backup(force){
+  if(ME)return syncMe();
+  if(!DONE.size&&!PATH.done.length)return;
+  if(!force&&Date.now()-lastBackup<90e3)return;lastBackup=Date.now();
+  try{await api('POST',{action:'backup',...ACCT,...myStats(),progress:myProgress()})}catch(e){}}
+// first launch of the installed iPhone app: same account as Safari, pull its progress and name
+async function adoptAcct(){
+  try{const r=await api('POST',{action:'pull',...ACCT});store.set('bq-adopt',0);
+    if(r.name&&!ME){ME={...ACCT,name:r.name};store.set('bq-me',ME)}
+    const changed=mergeProgress(r.progress);
+    if(!$('#home').hidden)drawHome();drawBoard();
+    if(changed||r.name)toast(r.name?'ברוך שובך, '+r.name+'! ההתקדמות סונכרנה':'ההתקדמות שלך סונכרנה')}
+  catch(e){}}
 function drawXp(){$('#sessXp').textContent=TOTALXP}
 // merge progress from another device: answered questions are combined, the longer path wins, highest XP wins
 function mergeProgress(p){
@@ -1720,9 +1744,10 @@ function mergeProgress(p){
 async function pullMe(){if(!ME)return;try{const r=await api('POST',{action:'pull',id:ME.id,secret:ME.secret});if(mergeProgress(r.progress)&&!$('#home').hidden)drawHome()}catch(e){}}
 async function redeem(code){
   const r=await api('POST',{action:'redeem',code});
-  ME={id:r.id,secret:r.secret,name:r.name};store.set('bq-me',ME);
+  ACCT={id:r.id,secret:r.secret};saveAcct();
+  ME=r.name?{...ACCT,name:r.name}:null;store.set('bq-me',ME);
   mergeProgress(r.progress);await syncMe();show('home');
-  SFX.unlock();toast('מסונכרן! ברוך הבא, '+ME.name);
+  SFX.unlock();toast(ME?'מסונכרן! ברוך הבא, '+ME.name:'מסונכרן!');
   const h=$('#home .home-body');burst(innerWidth/2,180,60,9)}
 const rankOf=(b,id)=>b?b.findIndex(p=>p.id===id):-1;
 function stageLabel(p){const r=p.rounds%(PER+1);return `שלב ${p.stage} · ${r===PER?'בחינה חוזרת':'סבב '+(r+1)}`}
@@ -1752,7 +1777,7 @@ function drawBoard(){
     <button class="link" id="haveCode">כבר משחק בטלפון או במחשב אחר? יש לי קוד</button>
     ${rows(BOARD||[],5)}`;
     $('#haveCode').onclick=()=>codeModal();
-    $('#joinForm').onsubmit=async e=>{e.preventDefault();const n=$('#joinName').value.trim();if(!n)return;ME={id:rid(16),secret:rid(32),name:n.slice(0,20)};store.set('bq-me',ME);SFX.unlock();await syncMe();toast('ברוך הבא לטבלה, '+ME.name+'!')};
+    $('#joinForm').onsubmit=async e=>{e.preventDefault();const n=$('#joinName').value.trim();if(!n)return;ME={...ACCT,name:n.slice(0,20)};store.set('bq-me',ME);SFX.unlock();await syncMe();toast('ברוך הבא לטבלה, '+ME.name+'!')};
     return}
   const b=BOARD||[],r=rankOf(b,ME.id),me=b[r];
   let chase='';
@@ -1879,6 +1904,7 @@ function finish(){
     else{const leftR=PER-pos-1;pathMsg=`סבב ${pos+1} מתוך ${PER} בשלב ${stage}`+(leftR?` · עוד ${leftR} עד הבחינה החוזרת`:' · הבא בתור: בחינה חוזרת')}}
   show('done');
   $('#overtake').hidden=true;
+  if(!ME)backup(true);
   if(ME){const before=BOARD?BOARD.slice():null,oldR=rankOf(before,ME.id);
     syncMe().then(after=>{if(!after)return;const nr=rankOf(after,ME.id);if(nr<0)return;
       const passed=before&&oldR>=0?before.slice(nr,oldR).filter(p=>p.id!==ME.id).map(p=>p.name):[];
@@ -1915,7 +1941,8 @@ document.addEventListener('keydown',e=>{
 });
 
 drawSnd();drawLen();drawHome();drawXp();pollBoard(true);
-if(ME)pullMe().then(syncMe);
+if(store.get('bq-adopt',0))adoptAcct();
+else if(ME)pullMe().then(syncMe);
 (()=>{const q=new URLSearchParams(location.search).get('code');if(!q)return;history.replaceState(null,'',location.pathname);codeModal(q.toUpperCase())})();
 </script>
 </body>

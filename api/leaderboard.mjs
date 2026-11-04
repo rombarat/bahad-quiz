@@ -34,7 +34,8 @@ async function board() {
   do {
     const page = await list({ prefix: 'players/', cursor, limit: 1000 });
     const rows = await Promise.all(page.blobs.map(b => readJson(b.url, b.uploadedAt).catch(() => null)));
-    rows.forEach(p => p && out.push({ id: p.id, name: p.name, xp: p.xp || 0, correct: p.correct || 0, rounds: p.rounds || 0, stage: p.stage || 1, updated: p.updated || 0 }));
+    // players without a name are silent backups (e.g. for moving progress into the installed iPhone app)
+    rows.forEach(p => p && p.name && out.push({ id: p.id, name: p.name, xp: p.xp || 0, correct: p.correct || 0, rounds: p.rounds || 0, stage: p.stage || 1, updated: p.updated || 0 }));
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
   out.sort((a, b) => b.xp - a.xp || b.correct - a.correct || a.updated - b.updated);
@@ -93,7 +94,20 @@ export default async function handler(req, res) {
     const prev = auth.prev;
 
     if (action === 'pull') {
-      return res.status(200).json({ name: prev ? prev.name : null, progress: prev ? prev.progress || null : null });
+      return res.status(200).json({ name: prev && prev.name ? prev.name : null, progress: prev ? prev.progress || null : null });
+    }
+
+    // Silent backup of progress for players who haven't joined the board. Keeps any existing name.
+    if (action === 'backup') {
+      const row = {
+        id, name: prev && prev.name ? prev.name : '',
+        hashes: prev ? hashesOf(prev) : [sha(secret)],
+        xp: int(b.xp, MAX.xp), correct: int(b.correct, MAX.correct), rounds: int(b.rounds, MAX.rounds),
+        stage: Math.max(1, int(b.stage, MAX.stage)), updated: Date.now(),
+        progress: cleanProgress(b.progress) || (prev && prev.progress) || null
+      };
+      await save(`players/${id}.json`, row);
+      return res.status(200).json({ ok: true });
     }
 
     if (action === 'mkcode') {

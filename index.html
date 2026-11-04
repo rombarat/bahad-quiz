@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>בוחן בה״ד 1</title>
+<meta name="description" content="תרגול שאלות לקראת בה״ד 1: סבבים קצרים, בחינה חוזרת והסבר אחרי כל תשובה.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#58702a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="בוחן בה״ד">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
 <style>
@@ -152,6 +162,20 @@ button:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
 .modal h3{font:800 1.25rem var(--display);margin:0}
 .modal p{margin:0;color:var(--muted)}
 
+/* ---------- INSTALL ---------- */
+.install{display:flex;align-items:center;gap:12px;background:var(--accent-soft);border:2px solid var(--accent);border-radius:18px;padding:12px 14px}
+.install img{width:44px;height:44px;border-radius:11px;flex:none}
+.install .txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.install .txt b{font:800 1rem var(--display)}
+.install .txt small{color:var(--muted);font-size:.86rem;line-height:1.3}
+.install .go{width:auto;padding:10px 16px;font-size:.95rem;flex:none}
+.install .x{flex:none;align-self:flex-start;margin:-4px -6px 0 0}
+.install .x svg{width:20px;height:20px}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;text-align:right}
+.steps li{display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:14px;padding:10px 12px;font-weight:600}
+.steps .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font:800 .95rem var(--display)}
+.steps svg{width:22px;height:22px;flex:none;color:var(--sel);vertical-align:middle}
+
 /* ---------- DONE ---------- */
 #done{overflow-y:auto}
 .done-body{display:flex;flex-direction:column;align-items:center;gap:18px;padding-block:36px 32px;text-align:center;flex:1}
@@ -250,6 +274,12 @@ body{margin:0}
       </div>
     </div>
     <div class="inner home-body">
+      <div class="install" id="install" hidden>
+        <img src="/icons/icon-192.png" alt="">
+        <div class="txt"><b>להתקין כאפליקציה</b><small>אייקון במסך הבית, מסך מלא, ועובד גם בלי אינטרנט</small></div>
+        <button class="big go" id="installGo">התקנה</button>
+        <button class="icon-btn x" id="installX" aria-label="לא עכשיו"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
       <div class="prog">
         <div class="prog-row"><b id="progTxt"></b><button class="link" id="reset">איפוס התקדמות</button></div>
         <div class="bar"><i id="progBar"></i></div>
@@ -1260,6 +1290,27 @@ function drawHome(){
 }
 $('#topics').onclick=e=>{const b=e.target.closest('.topic');if(b)launch(b.dataset.c)};
 $('#onlyNew').onclick=()=>{ONLY=!ONLY;store.set('bq-only',ONLY);SFX.tap();drawHome()};
+/* ---------- INSTALL (PWA) ---------- */
+// Android/desktop Chrome fire beforeinstallprompt and we show our own button.
+// iPhone Safari has no install API, so the button opens step-by-step instructions instead.
+let installEvt=null;
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const installSnoozed=()=>Date.now()-store.get('bq-install-x',0)<14*864e5;
+function drawInstall(){$('#install').hidden=standalone()||installSnoozed()||!(installEvt||isIOS)}
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;drawInstall()});
+addEventListener('appinstalled',()=>{installEvt=null;drawInstall();toast('האפליקציה הותקנה!')});
+$('#installX').onclick=()=>{store.set('bq-install-x',Date.now());SFX.tap();drawInstall()};
+$('#installGo').onclick=async()=>{SFX.tap();
+  if(installEvt){installEvt.prompt();const r=await installEvt.userChoice.catch(()=>null);installEvt=null;if(r&&r.outcome!=='accepted')drawInstall();else $('#install').hidden=true;return}
+  const share='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11v9h12v-9"/></svg>';
+  const plus='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="box" role="dialog" aria-label="התקנה באייפון"><h3>התקנה באייפון</h3><p>פותחים את האתר ב-Safari, ואז:</p><ol class="steps"><li><span class="n">1</span><span>לוחצים על כפתור השיתוף ${share} בתחתית המסך</span></li><li><span class="n">2</span><span>גוללים ובוחרים ״הוספה למסך הבית״ ${plus}</span></li><li><span class="n">3</span><span>לוחצים ״הוסף״ בפינה העליונה</span></li></ol><button class="big" id="iosOk">הבנתי</button></div>`;
+  document.body.appendChild(m);$('#iosOk').focus();$('#iosOk').onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()}};
+drawInstall();
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+
 $('#reset').onclick=()=>{const m=document.createElement('div');m.className='modal';m.innerHTML='<div class="box"><h3>לאפס את ההתקדמות?</h3><p>כל השאלות יסומנו שוב כחדשות.</p><button class="big no" id="doReset">איפוס</button><button class="big ghost" id="noReset">ביטול</button></div>';document.body.appendChild(m);$('#noReset').focus();$('#noReset').onclick=()=>m.remove();$('#doReset').onclick=()=>{DONE.clear();saveDone();PATH={done:[]};savePath();m.remove();drawHome()};m.onclick=e=>{if(e.target===m)m.remove()}};
 function drawLen(){$$('.seg').forEach(s=>s.setAttribute('aria-pressed',+s.dataset.n===LEN))}
 $$('.seg').forEach(s=>s.onclick=()=>{LEN=+s.dataset.n;store.set('bq-len',LEN);drawLen();drawPath();SFX.tap()});

@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "api/questions.mjs": { "includeFiles": "api/_data/**" }
+  },
+  "crons": [
+    { "path": "/api/cron-renew", "schedule": "17 3 * * *" }
+  ],
   "headers": [
     {
       "source": "/sw.js",

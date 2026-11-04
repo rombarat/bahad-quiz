@@ -78,6 +78,13 @@ button:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
 .seg{border:2px solid var(--line);border-bottom-width:4px;background:var(--surface);border-radius:12px;padding:5px 14px;font:700 .95rem var(--display);font-variant-numeric:tabular-nums}
 .seg[aria-pressed="true"]{border-color:var(--sel);background:var(--sel-soft);color:var(--sel)}
 .sec-title{font:800 1.1rem var(--display);margin:0 0 -8px}
+.tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 0;margin:-8px 0;background:var(--bg)}
+.tab{display:flex;align-items:center;justify-content:center;gap:7px;border:2px solid var(--line);border-bottom-width:4px;background:var(--surface);color:var(--muted);border-radius:14px;padding:10px 8px;font:800 1rem var(--display)}
+.tab svg{width:20px;height:20px;flex:none}
+.tab[aria-selected="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
+.pane{display:flex;flex-direction:column;gap:22px}
+.pane[hidden]{display:none}
+.tab-hint{margin:-12px 0 0;color:var(--muted);font-size:.92rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .topic{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:var(--surface);border:2px solid var(--line);border-bottom-width:5px;border-radius:18px;padding:16px 10px 14px;transition:transform .06s}
 .topic:active{transform:translateY(3px);border-bottom-width:2px}
@@ -177,16 +184,16 @@ button:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
 .pw-note{font-size:.82rem;color:var(--muted)}
 .modal p.pw-note{color:var(--muted)}
 #gsiBtn{display:flex;justify-content:center;min-height:44px}
-.payform{display:flex;flex-direction:column;gap:10px}
-.payform label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.9rem}
-.payform input[type=text]{font:inherit;font-size:1rem;padding:12px;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);direction:ltr;text-align:left;min-width:0;width:100%;box-sizing:border-box}
-.payform .three label{min-width:0}
-.payform input[type=text]:focus{outline:none;border-color:var(--sel)}
-.payform .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.payform .og-errors{color:var(--bad-ink);font-weight:600;min-height:0}
-.payform .og-errors:empty{display:none}
-.payform label.terms{flex-direction:row;align-items:center;gap:8px;font-weight:500}
-.payform label.terms input{width:20px;height:20px;accent-color:var(--accent)}
+.pw-mail{background:var(--sel-soft);border:2px solid var(--sel);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:.95rem}
+.pw-mail .addr{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}
+.pw-mail .addr b{direction:ltr;font:700 1rem var(--body);word-break:break-all}
+.pw-mail .link{color:var(--sel)}
+.pw-step label.terms{display:flex;align-items:center;gap:8px;font-size:.92rem}
+.pw-step label.terms input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+a.big{display:block;text-align:center;text-decoration:none;box-sizing:border-box}
+a.big[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.og-errors{color:var(--bad-ink);font-weight:600}
+.og-errors:empty{display:none}
 .path-end .big{margin-top:10px}
 
 /* ---------- INSTALL ---------- */
@@ -318,11 +325,19 @@ body{margin:0}
           <button class="seg" id="len20" data-n="20" aria-pressed="false">20 · ~10 דק׳</button>
         </div>
       </div>
-      <div class="board" id="board"></div>
-      <div class="path" id="path"></div>
-      <h2 class="sec-title">תרגול חופשי לפי נושא</h2>
-      <button class="toggle" id="onlyNew" aria-pressed="false"><span class="sw"></span><span>רק שאלות שעוד לא עניתי עליהן נכון</span></button>
-      <div class="grid" id="topics"></div>
+      <div class="tabs" role="tablist" aria-label="סוג תרגול">
+        <button class="tab" role="tab" id="tabPath" aria-controls="panePath" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5"/></svg>מסלול למידה</button>
+        <button class="tab" role="tab" id="tabTopics" aria-controls="paneTopics" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>לפי נושא</button>
+      </div>
+      <div class="pane" id="panePath" role="tabpanel" aria-labelledby="tabPath">
+        <div class="board" id="board"></div>
+        <div class="path" id="path"></div>
+      </div>
+      <div class="pane" id="paneTopics" role="tabpanel" aria-labelledby="tabTopics" hidden>
+        <p class="tab-hint">בוחרים נושא ומקבלים סבב שאלות רק ממנו</p>
+        <button class="toggle" id="onlyNew" aria-pressed="false"><span class="sw"></span><span>רק שאלות שעוד לא עניתי עליהן נכון</span></button>
+        <div class="grid" id="topics"></div>
+      </div>
     </div>
   </section>
 
@@ -373,7 +388,7 @@ body{margin:0}
 <script>
 // [מספר קבוע, נושא, שאלה, תשובה נכונה, מסיחים מופרדים ב-|, הסבר]
 // 100 שאלות חינמיות. שאר השאלות מגיעות מהשרת (/api/questions) למנויים ולחברים.
-const QTOTAL=1124;
+const QTOTAL=1124; const CAT_N={"מורשת":192,"אזרחות":87,"ציונות":174,"שואה":84,"מדינה":257,"נשק":98,"עזרה ראשונה":76,"קשר":47,"תחקיר":34,"גאוגרפיה":51,"המנון":24};
 const FREE_Q=[
 [0,'מורשת','לפי מה נקבע חג החנוכה?','חז״ל','התורה|הכנסת|הרבנות הראשית','חנוכה אינו מופיע בתורה. חז״ל קבעו אותו כחג מדרבנן לזכר ניצחון החשמונאים ונס פך השמן.'],
 [1,'מורשת','מי כתב את השולחן ערוך?','רבי יוסף קארו','הרמב״ם|רש״י|רבי יהודה הנשיא','רבי יוסף קארו חיבר את השולחן ערוך בצפת במאה ה-16. הרמב״ם כתב את ״משנה תורה״, ורבי יהודה הנשיא חתם את המשנה.'],
@@ -602,12 +617,20 @@ function drawHome(){
   const tot=QTOTAL,dn=D.filter(x=>DONE.has(IDX.get(x))).length;
   $('#progTxt').textContent=`ענית נכון על ${dn} מתוך ${tot} שאלות`;$('#progBar').style.width=(dn/tot*100)+'%';
   $('#onlyNew').setAttribute('aria-pressed',ONLY);
-  $('#topics').innerHTML=CATS.map((c,i)=>{const all=D.filter(x=>x[0]===c),d=all.filter(x=>DONE.has(IDX.get(x))).length;
-    return `<button class="topic${d===all.length?' full':''}" id="t${i}" data-c="${c}" style="--c:${COLORS[c]||'#58702a'}"><span class="medal">${c[0]}</span><b>${c}</b><small>${d}/${all.length}</small><span class="tbar"><i style="width:${d/all.length*100}%"></i></span></button>`}).join('');
+  $('#topics').innerHTML=CATS.map((c,i)=>{const all=D.filter(x=>x[0]===c),d=all.filter(x=>DONE.has(IDX.get(x))).length,n=Math.max(CAT_N[c]||0,all.length);
+    return `<button class="topic${d===n?' full':''}" id="t${i}" data-c="${c}" style="--c:${COLORS[c]||'#58702a'}"><span class="medal">${c[0]}</span><b>${c}</b><small>${d}/${n}</small><span class="tbar"><i style="width:${d/n*100}%"></i></span></button>`}).join('');
   drawPath();drawAccess();
 }
 $('#topics').onclick=e=>{const b=e.target.closest('.topic');if(b)launch(b.dataset.c)};
 $('#onlyNew').onclick=()=>{ONLY=!ONLY;store.set('bq-only',ONLY);SFX.tap();drawHome()};
+let TAB=store.get('bq-tab','path')==='topics'?'topics':'path';
+function drawTab(){$('#tabPath').setAttribute('aria-selected',TAB==='path');$('#tabTopics').setAttribute('aria-selected',TAB==='topics');$('#panePath').hidden=TAB!=='path';$('#paneTopics').hidden=TAB!=='topics'}
+function setTab(t){if(t===TAB)return;TAB=t;store.set('bq-tab',t);SFX.tap();drawTab();
+  // if the tab bar is stuck to the top, jump to the start of the new list instead of leaving the reader mid-page
+  const h=$('#home'),bar=$('.tabs');if(h.scrollTop>bar.offsetTop-8)h.scrollTop=bar.offsetTop-8;
+  if(t==='path'){const c=$('.node.cur');if(c)requestAnimationFrame(()=>c.scrollIntoView({block:'center'}))}}
+$('#tabPath').onclick=()=>setTab('path');$('#tabTopics').onclick=()=>setTab('topics');
+drawTab();
 /* ---------- INSTALL (PWA) ---------- */
 // Android/desktop Chrome fire beforeinstallprompt and we show our own button.
 // iPhone Safari has no install API, so the button opens step-by-step instructions instead.
@@ -633,7 +656,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostnam
 $('#reset').onclick=()=>{const m=document.createElement('div');m.className='modal';m.innerHTML='<div class="box"><h3>לאפס את ההתקדמות?</h3><p>כל השאלות יסומנו שוב כחדשות.</p><button class="big no" id="doReset">איפוס</button><button class="big ghost" id="noReset">ביטול</button></div>';document.body.appendChild(m);$('#noReset').focus();$('#noReset').onclick=()=>m.remove();$('#doReset').onclick=()=>{DONE.clear();saveDone();PATH={done:[]};savePath();m.remove();drawHome()};m.onclick=e=>{if(e.target===m)m.remove()}};
 function drawLen(){$$('.seg').forEach(s=>s.setAttribute('aria-pressed',+s.dataset.n===LEN))}
 $$('.seg').forEach(s=>s.onclick=()=>{LEN=+s.dataset.n;store.set('bq-len',LEN);drawLen();drawPath();SFX.tap()});
-function show(id){['home','lesson','done'].forEach(s=>$('#'+s).hidden=s!==id);pollBoard(id==='home');if(id==='home'){drawHome();const c=$('.node.cur');if(c)requestAnimationFrame(()=>c.scrollIntoView({block:'center'}))}}
+function show(id){['home','lesson','done'].forEach(s=>$('#'+s).hidden=s!==id);pollBoard(id==='home');if(id==='home'){drawHome();const c=TAB==='path'&&$('.node.cur');if(c)requestAnimationFrame(()=>c.scrollIntoView({block:'center'}))}}
 
 /* ---------- PATH ---------- */
 const PER=5; // learn rounds per stage, then a review
@@ -955,14 +978,15 @@ function drawAccess(){
   el.hidden=false;
   if(ACCESS&&ACCESS.full){
     const friend=ACCESS.reason==='friend',until=ACCESS.paidUntil?new Date(ACCESS.paidUntil).toLocaleDateString('he-IL'):'';
-    const sub=friend?'אתה ברשימת החברים, הכול פתוח':ACCESS.status==='canceled'?`המנוי בוטל. הגישה פתוחה עד ${until}`:'המנוי מתחדש כל חודש';
+    const sub=friend?'אתה ברשימת החברים, הכול פתוח':ACCESS.status==='canceled'||ACCESS.status==='cancel_requested'?`המנוי בוטל. הגישה פתוחה עד ${until}`:'המנוי מתחדש כל חודש';
     el.className='access ok';
     el.innerHTML=`<div class="row"><div><b>${friend?'גישה מלאה לכל השאלות':'מנוי פעיל'}</b><p>${sub}</p></div>${SIGNED&&!friend?'<button class="link" id="accMng">ניהול מנוי</button>':''}</div>`;
     if($('#accMng'))$('#accMng').onclick=manageSub;
     return}
   el.className='access';
-  el.innerHTML=`<div><b>יש לך גישה ל־${FREE_Q.length} מתוך ${QTOTAL.toLocaleString('en')} שאלות</b><p>מנוי פותח את כל השאלות ואת המסלול המלא</p></div><button class="big" id="accGo">לכל השאלות · ${priceTxt()} לחודש</button>`;
+  el.innerHTML=`<div><b>יש לך גישה ל־${FREE_Q.length} מתוך ${QTOTAL.toLocaleString('en')} שאלות</b><p>מנוי פותח את כל השאלות ואת המסלול המלא</p></div><button class="big" id="accGo">לכל השאלות · ${priceTxt()} לחודש</button>${SIGNED&&payingRecently()?'<button class="link" id="accCheck">כבר שילמתי, לבדוק שוב</button>':''}`;
   $('#accGo').onclick=()=>openPaywall();
+  if($('#accCheck'))$('#accCheck').onclick=()=>checkPaid(true);
 }
 const loadScript=src=>new Promise((ok,no)=>{const old=document.querySelector(`script[src="${src}"]`);if(old&&old.dataset.loaded)return ok();
   const s=old||document.createElement('script');s.src=src;s.async=true;s.onload=()=>{s.dataset.loaded=1;ok()};s.onerror=no;if(!old)document.head.appendChild(s)});
@@ -988,25 +1012,37 @@ async function openPaywall(errMsg){
       b.addEventListener('click',()=>store.set('bq-after-login',1),true);
     }catch(e){step.querySelector('#gsiBtn').textContent='לא הצלחתי לטעון את ההתחברות. בדקו את החיבור לאינטרנט.'}
     return}
-  step.innerHTML=`<p><b>שלב 2 מתוך 2:</b> פרטי תשלום${USER?` <span class="pw-note">(מחובר כ־${esc(USER.email)})</span>`:''}</p>
-    <form class="payform" id="payForm" data-og="form" method="post" action="/api/account">
-      <label>מספר כרטיס<input type="text" data-og="cardnumber" autocomplete="cc-number" inputmode="numeric"></label>
-      <div class="three"><label>חודש<input type="text" data-og="expirationmonth" autocomplete="cc-exp-month" placeholder="MM" inputmode="numeric" maxlength="2"></label>
-        <label>שנה<input type="text" data-og="expirationyear" autocomplete="cc-exp-year" placeholder="YYYY" inputmode="numeric" maxlength="4"></label>
-        <label>CVV<input type="text" data-og="cvv" autocomplete="cc-csc" inputmode="numeric" maxlength="4"></label></div>
-      <label>תעודת זהות של בעל/ת הכרטיס<input type="text" data-og="citizenid" inputmode="numeric" maxlength="9"></label>
-      <div class="og-errors" role="alert">${errMsg?esc(errMsg):''}</div>
-      <label class="terms"><input type="checkbox" required> קראתי ואני מסכים/ה <a href="/terms.html" target="_blank" rel="noopener">לתקנון</a></label>
-      <button class="big" type="submit" id="payBtn">לתשלום ${priceTxt()} והפעלת המנוי</button>
-    </form>`;
-  const f=step.querySelector('#payForm');
-  f.addEventListener('submit',()=>{$('#payBtn').textContent='מעבד את התשלום…'});
-  try{
-    await loadScript('https://code.jquery.com/jquery-3.7.1.min.js');
-    await loadScript('https://app.sumit.co.il/scripts/payments.js');
-    OfficeGuy.Payments.BindFormSubmit({CompanyID:CFG.sumitCompanyId,APIPublicKey:CFG.sumitPublicKey});
-  }catch(e){f.querySelector('.og-errors').textContent='טופס התשלום לא נטען. בדקו את החיבור לאינטרנט ונסו שוב.';$('#payBtn').disabled=true}
+  const mail=USER?USER.email:'';
+  step.innerHTML=`<p><b>שלב 2 מתוך 2:</b> תשלום בדף המאובטח של סאמיט</p>
+    ${mail?`<div class="pw-mail"><span>בדף התשלום הקלידו את המייל הזה, וכך המנוי ייפתח לכם אוטומטית:</span>
+      <span class="addr"><b>${esc(mail)}</b><button class="link" id="pwCopy" type="button">העתקה</button></span></div>`:''}
+    <div class="og-errors" role="alert">${errMsg?esc(errMsg):''}</div>
+    <label class="terms"><input type="checkbox" id="pwAgree"> קראתי ואני מסכים/ה <a href="/terms.html" target="_blank" rel="noopener">לתקנון</a></label>
+    <a class="big" id="payGo" href="${esc(CFG.payUrl||'#')}" aria-disabled="true">לתשלום ${priceTxt()} לחודש</a>
+    <button class="link" id="pwCheck" type="button">כבר שילמתי, לבדוק שוב</button>`;
+  const go=step.querySelector('#payGo'),agree=step.querySelector('#pwAgree');
+  agree.onchange=()=>go.setAttribute('aria-disabled',!agree.checked);
+  go.onclick=e=>{if(!agree.checked){e.preventDefault();return}store.set('bq-paying',Date.now())};
+  const cp=step.querySelector('#pwCopy');if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(mail);cp.textContent='הועתק ✓'}catch(e){cp.textContent='לא הועתק'}};
+  step.querySelector('#pwCheck').onclick=()=>{m.remove();checkPaid(true)};
 }
+// After paying, SUMIT reports the payment to our server within seconds; ask a few times before giving up.
+let checking=false;
+async function checkPaid(loud){
+  if(checking)return;checking=true;
+  if(loud)toast('בודק את התשלום…');
+  for(let i=0;i<8;i++){
+    const r=await call('/api/account',{method:'POST',body:JSON.stringify({action:'sync'})}).catch(()=>null);
+    if(r&&r.ok&&r.j.access&&r.j.access.full){checking=false;store.set('bq-paying',0);ACCESS=r.j.access;store.set('bq-access',ACCESS);
+      toast('המנוי הופעל! כל השאלות פתוחות');burst(innerWidth/2,200,90,10);await refreshAccess();return true}
+    if(r&&r.status===401)break;
+    await new Promise(ok=>setTimeout(ok,i<3?2500:5000));
+  }
+  checking=false;
+  if(loud||store.get('bq-paying',0))toast('התשלום עוד לא הגיע אלינו. אם שילמתם, זה יכול לקחת כמה דקות');
+  drawAccess();return false;
+}
+const payingRecently=()=>Date.now()-store.get('bq-paying',0)<6*36e5;
 function manageSub(){
   const until=ACCESS&&ACCESS.paidUntil?new Date(ACCESS.paidUntil).toLocaleDateString('he-IL'):'';
   const active=ACCESS&&ACCESS.status==='active';
@@ -1020,22 +1056,25 @@ function manageSub(){
     if(c.dataset.sure!=='1'){c.dataset.sure='1';c.textContent=`בטוח? הגישה תישאר עד ${until}`;return}
     c.disabled=true;c.textContent='מבטל…';
     const r=await call('/api/account',{method:'POST',body:JSON.stringify({action:'cancel'})}).catch(()=>({ok:false,j:{}}));
-    if(r.ok){ACCESS=r.j.access;store.set('bq-access',ACCESS);m.remove();toast('המנוי בוטל');drawAccess()}
+    if(r.ok){ACCESS=r.j.access;store.set('bq-access',ACCESS);m.remove();
+      toast(ACCESS.status==='cancel_requested'?`בקשת הביטול התקבלה. לא תחויבו שוב, והגישה נשארת עד ${until}`:'המנוי בוטל');drawAccess()}
     else{c.disabled=false;c.textContent='הביטול נכשל. נסו שוב';}};
 }
 // coming back from Google sign-in or from the payment form
 function afterReturn(){
   const u=new URLSearchParams(location.search),login=u.get('login'),paid=u.get('paid');
-  if(!login&&!paid)return;
+  if(!login&&!paid){if(SIGNED&&locked()&&payingRecently())checkPaid(false);return}
   history.replaceState(null,'',location.pathname);
   if(login==='error')toast('ההתחברות נכשלה. נסו שוב');
-  if(paid==='ok'){toast('המנוי הופעל! כל השאלות פתוחות');burst(innerWidth/2,200,90,10);SFX.combo&&SFX.combo(10)}
-  if(paid==='fail')openPaywall('התשלום לא עבר'+(u.get('m')?': '+u.get('m'):'')+'. אפשר לנסות שוב.');
+  if(paid==='fail')openPaywall('התשלום לא עבר. אפשר לנסות שוב.');
+  else if(paid)checkPaid(true);
   else if(login==='ok'&&store.get('bq-after-login',0)){store.set('bq-after-login',0);if(locked())openPaywall()}
 }
 
 drawSnd();drawLen();drawHome();drawXp();pollBoard(true);
 refreshAccess().then(afterReturn);
+// back from the payment page in another tab, or the installed app returns to the foreground
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&SIGNED&&locked()&&payingRecently())checkPaid(false)});
 if(store.get('bq-adopt',0))adoptAcct();
 else if(ME)pullMe().then(syncMe);
 (()=>{const q=new URLSearchParams(location.search).get('code');if(!q)return;history.replaceState(null,'',location.pathname);codeModal(q.toUpperCase())})();

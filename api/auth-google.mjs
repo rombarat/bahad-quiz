@@ -2,6 +2,7 @@
 // create or update the user, set the session cookie and send the browser back to the app.
 // Redirect mode (not a popup) is used because it also works inside the installed iPhone app.
 import { sql } from './_lib/db.mjs';
+import { claimPayments } from './_lib/billing.mjs';
 import { cookies, makeSession, setSessionCookie, verifyGoogleIdToken } from './_lib/session.mjs';
 
 function formBody(req) {
@@ -24,6 +25,7 @@ export default async function handler(req, res) {
       insert into users (google_sub, email, name) values (${g.sub}, ${g.email}, ${g.name})
       on conflict (google_sub) do update set email = excluded.email, name = coalesce(excluded.name, users.name)
       returning id`;
+    await claimPayments(Number(u.id), g.email);
     setSessionCookie(res, makeSession(Number(u.id)));
     return back(true);
   } catch (e) {

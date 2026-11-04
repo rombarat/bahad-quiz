@@ -1,4 +1,5 @@
-// SUMIT (OfficeGuy) billing API: monthly recurring charge, cancel, and the payments list used for renewals.
+// SUMIT (OfficeGuy) billing API, used only when SUMIT_API_KEY is set: cancelling a standing order and the
+// payments list that backs up the webhook. Customers pay on SUMIT's own payment page.
 // Credentials go in the JSON body. The response envelope is { Status, UserErrorMessage, TechnicalErrorDetails, Data },
 // Status 0 = success. Paths and field names follow community docs of the SUMIT API; verify in the SUMIT test org.
 const BASE = () => (process.env.SUMIT_API_BASE || 'https://api.sumit.co.il').replace(/\/$/, '');
@@ -26,32 +27,6 @@ async function call(path, body) {
 }
 
 export const PRICE = () => Number(process.env.SUB_PRICE || 19.9);
-
-// Charges the first month now and creates a monthly standing order (הוראת קבע) for it.
-export async function startMonthly({ userId, email, name, token }) {
-  const day = new Date().toISOString().slice(0, 10);
-  const data = await call('/billing/recurring/charge/', {
-    Customer: { ExternalIdentifier: `user-${userId}`, SearchMode: 2, Name: name || email, EmailAddress: email },
-    SingleUseToken: token,
-    Items: [{
-      Item: { Name: 'מנוי חודשי לבוחן בה״ד 1', Duration_Months: 1 },
-      Quantity: 1, UnitPrice: PRICE(), Currency: 0, Duration_Months: 1
-    }],
-    VATIncluded: true,
-    OnlyDocument: false,
-    UniqueIdentifier: `sub-${userId}-${day}`
-  });
-  const p = data.Payment || {};
-  const ok = p.ValidPayment === true && (p.Status === '000' || p.Status === 0 || p.Status === '0');
-  return {
-    ok,
-    message: ok ? null : (p.StatusDescription || p.Status || 'התשלום נדחה'),
-    paymentId: p.ID ? Number(p.ID) : null,
-    customerId: Number(p.CustomerID || data.CustomerID) || null,
-    recurringId: Array.isArray(p.RecurringCustomerItemIDs) && p.RecurringCustomerItemIDs.length ? Number(p.RecurringCustomerItemIDs[0]) : null,
-    amount: Number(p.Amount) || PRICE()
-  };
-}
 
 export function cancelMonthly({ customerId, recurringId }) {
   return call('/billing/recurring/cancel/', { Customer: { ID: customerId }, RecurringCustomerItemID: recurringId });

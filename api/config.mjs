@@ -1,4 +1,4 @@
-// Public settings the page needs: whether the paywall is on, the sign-in and payment-form public ids, the price.
+// Public settings the page needs: whether the paywall is on, the Google sign-in client id, the payment page, the price.
 import { paywallOn } from './_lib/access.mjs';
 import { PRICE } from './_lib/sumit.mjs';
 
@@ -7,8 +7,7 @@ export default function handler(req, res) {
   res.status(200).json({
     paywall: paywallOn(),
     googleClientId: process.env.GOOGLE_CLIENT_ID || null,
-    sumitCompanyId: process.env.SUMIT_COMPANY_ID ? Number(process.env.SUMIT_COMPANY_ID) : null,
-    sumitPublicKey: process.env.SUMIT_PUBLIC_KEY || null,
+    payUrl: process.env.SUMIT_PAYMENT_URL || 'https://pay.sumit.co.il/16hshfy/16ht7p1/16ht7l1/payment/',
     price: PRICE()
   });
 }

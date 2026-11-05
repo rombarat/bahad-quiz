@@ -155,3 +155,21 @@ export async function announceProgress(player, prevXp, prevStage) {
     if (player.stage > (prevStage || 1)) await addMessage(code, null, 'system', `⭐ ${player.name} הגיע/ה לשלב ${player.stage}`);
   }
 }
+
+// ---- sharing ----
+// A new player who arrived through someone's link: remember who brought them (once, never self, only real players).
+export async function setReferrer(id, ref) {
+  if (!ref || ref === id || !/^[a-z0-9]{10,32}$/.test(ref)) return;
+  await sql`update players set referred_by = ${ref} where id = ${id} and referred_by is null
+    and exists (select 1 from players r where r.id = ${ref})`;
+}
+export async function markShared(id) {
+  await sql`update players set shares = shares + 1, shared_at = ${Date.now()} where id = ${id}`;
+}
+export async function referralStats() {
+  return sql`select p.id, p.name, p.shares, p.shared_at, count(r.id)::int as brought,
+      count(r.id) filter (where r.name <> '')::int as brought_named
+    from players p left join players r on r.referred_by = p.id
+    group by p.id having p.shares > 0 or count(r.id) > 0
+    order by count(r.id) desc, p.shares desc limit 100`;
+}

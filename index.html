@@ -411,6 +411,7 @@ body{margin:0}
       <div class="done-actions">
         <button class="big" id="again">שיעור נוסף</button>
         <button class="big ghost" id="redo" hidden>תרגל רק את הטעויות</button>
+        <button class="big ghost" id="shareRound">📤 שיתוף עם חבר</button>
         <button class="big ghost" id="toHome">חזרה למסלול</button>
       </div>
       <div class="review" id="review"></div>
@@ -779,6 +780,12 @@ if(!ACCT){const m=(getCookie('bq_acct')||'').match(/^([a-z0-9]{10,32})\.([a-z0-9
 if(!ACCT)ACCT={id:rid(16),secret:rid(32)};
 function saveAcct(){store.set('bq-acct',ACCT);try{document.cookie=`bq_acct=${ACCT.id}.${ACCT.secret}; max-age=34560000; path=/; SameSite=Lax${location.protocol==='https:'?'; Secure':''}`}catch(e){}}
 saveAcct();
+// ?ref=<player id>: this device came from someone's share link. Kept until the server has it (first save/backup).
+(()=>{const u=new URL(location.href),r=(u.searchParams.get('ref')||'').toLowerCase();if(!r)return;
+  if(/^[a-z0-9]{10,32}$/.test(r)&&r!==ACCT.id&&!store.get('bq-ref-done',0))store.set('bq-ref',r);
+  u.searchParams.delete('ref');history.replaceState(null,'',u.pathname+u.search)})();
+const refField=()=>{const r=store.get('bq-ref',null);return r?{ref:r}:{}};
+const refSent=()=>{if(store.get('bq-ref',null)){store.set('bq-ref',null);store.set('bq-ref-done',1)}};
 async function api(method,body){const r=await fetch(API,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||r.status);e.status=r.status;throw e}return j}
 async function loadBoard(){try{BOARD=(await api('GET')).players;boardOk=true}catch(e){boardOk=false}
   if(ME)syncGroups(); // also brings the latest message id of each group, for the unread dot
@@ -865,7 +872,7 @@ function groupModal(){
     try{await doJoinGroup($('#gjCode').value);m.remove()}catch(err){fail(err);b.disabled=false}};
 }
 function inviteModal(g,fresh){
-  const url=location.origin+'/?join='+g.code,txt=`בואו להתחרות איתי בהשביל לבה״ד! הצטרפו לקבוצה "${g.name}" בקישור, או באפליקציה: טבלת המובילים ← "+ קבוצה עם חברים" ← קוד ${g.code}`;
+  const url=location.origin+'/?join='+g.code+'&ref='+ACCT.id,txt=`בואו להתחרות איתי בהשביל לבה״ד! הצטרפו לקבוצה "${g.name}" בקישור, או באפליקציה: טבלת המובילים ← "+ קבוצה עם חברים" ← קוד ${g.code}`;
   const m=modal(`<h3>${fresh?'הקבוצה נפתחה!':'הזמנת חברים'}</h3><p>שלחו לחברים את הקישור. מי שהאפליקציה מותקנת אצלו יכול גם להקליד את הקוד ב"+ קבוצה עם חברים":</p>
     <div class="code">${esc(g.code)}</div>
     <button class="big" type="button" id="ivShare">${navigator.share?'שליחה לחברים':'העתקת הקישור'}</button><button class="big ghost" type="button" id="ivClose">סגירה</button>`);
@@ -874,13 +881,13 @@ function inviteModal(g,fresh){
     if(navigator.share){try{await navigator.share({title:'השביל לבה״ד',text:txt,url});return}catch(e){if(e&&e.name==='AbortError')return}}
     try{await navigator.clipboard.writeText(txt+' '+url);c.textContent='הקישור הועתק';SFX.select()}catch(e){c.textContent=url}};
 }
-async function syncMe(){if(!ME)return null;try{BOARD=(await api('POST',{action:'save',...ME,...myStats(),progress:myProgress()})).players;boardOk=true}catch(e){boardOk=false}await loadGroup();drawBoard();return BOARD}
+async function syncMe(){if(!ME)return null;try{BOARD=(await api('POST',{action:'save',...ME,...myStats(),progress:myProgress(),...refField()})).players;boardOk=true;refSent()}catch(e){boardOk=false}await loadGroup();drawBoard();return BOARD}
 let lastBackup=0;
 async function backup(force){
   if(ME)return syncMe();
   if(!DONE.size&&!PATH.done.length)return;
   if(!force&&Date.now()-lastBackup<90e3)return;lastBackup=Date.now();
-  try{await api('POST',{action:'backup',...ACCT,...myStats(),progress:myProgress()})}catch(e){}}
+  try{await api('POST',{action:'backup',...ACCT,...myStats(),progress:myProgress(),...refField()});refSent()}catch(e){}}
 // first launch of the installed iPhone app: same account as Safari, pull its progress and name
 async function adoptAcct(){
   try{const r=await api('POST',{action:'pull',...ACCT});store.set('bq-adopt',0);
@@ -1062,6 +1069,27 @@ const TROPHY=`<defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop of
 <rect x="53" y="73" width="14" height="14" fill="#f2a01c" stroke="#c87a00" stroke-width="4"/>
 <rect x="36" y="87" width="48" height="16" rx="5" fill="#58702a" stroke="#3f5219" stroke-width="4"/>`;
 function countUp(el,to,suf,ticks){if(reduced){el.textContent=to+suf;return}const t0=performance.now(),d=900;let last=-1,k=0;(function f(t){const p=Math.min((t-t0)/d,1),e=1-Math.pow(1-p,3),v=Math.round(to*e);el.textContent=v+suf;if(ticks&&v!==last&&t-(f.lt||0)>45){SFX.tick(k++);f.lt=t}last=v;if(p<1)requestAnimationFrame(f)})(t0)}
+// ---- sharing the app ----
+const shareUrl=()=>location.origin+'/?ref='+ACCT.id;
+async function shareApp(text,btn){
+  const url=shareUrl();SFX.tap();
+  const done=()=>{store.set('bq-shared-at',Date.now());api('POST',{action:'shared',...ACCT}).catch(()=>{})};
+  if(navigator.share){try{await navigator.share({title:'השביל לבה״ד',text,url});done();toast('תודה ששיתפת! 💚');return}catch(e){if(e&&e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(text+' '+url);done();if(btn)btn.textContent='הקישור הועתק ✓';toast('הקישור הועתק. הדבק אותו בוואטסאפ 💚')}
+  catch(e){if(btn)btn.textContent=url}
+}
+const SHARE_TXT=`מתכוננים לבה״ד? אני מתרגל ב"השביל לבה״ד": ${QTOTAL.toLocaleString('en')} שאלות עם הסבר אחרי כל תשובה, טבלת מובילים וקבוצות עם חברים. נסו:`;
+// every few finished rounds, at most every two days (and not right after sharing), ask to share
+function maybeSharePopup(){
+  const n=store.get('bq-rounds-n',0)+1;store.set('bq-rounds-n',n);
+  if(n<3||(n-3)%4)return;
+  if(Date.now()-store.get('bq-share-pop',0)<2*864e5||Date.now()-store.get('bq-shared-at',0)<7*864e5)return;
+  store.set('bq-share-pop',Date.now());
+  setTimeout(()=>{if($('#done').hidden||document.querySelector('.modal'))return;
+    const m=modal(`<h3>🎯 מכיר מישהו שמתכונן לבה״ד?</h3><p>שלח לו את האפליקציה. מתרגלים יותר כשיש עם מי להתחרות, ואפשר לפתוח יחד קבוצה פרטית בטבלת המובילים.</p>
+      <button class="big" type="button" id="spGo">📤 שליחה לחבר</button><button class="big ghost" type="button" id="spNo">לא עכשיו</button>`);
+    $('#spNo').onclick=()=>m.remove();$('#spGo').onclick=()=>{m.remove();shareApp(SHARE_TXT)}},2600);
+}
 function finish(){
   const tEl=$('#toast');if(tEl)tEl.classList.remove('show');
   const acc=Math.round(L.firstTry/L.total*100), secs=Math.round((Date.now()-L.t0)/1000);
@@ -1095,6 +1123,9 @@ function finish(){
   $('#redo').hidden=!w.length;
   $('#review').innerHTML=w.length?'<h3>מה כדאי לחזור עליו</h3>'+w.map(x=>`<div class="rv"><strong>${esc(x.item[1])}</strong><span class="p">${esc(x.picked)}</span><span class="a">${esc(x.item[2])}</span><span class="w">${esc(x.item[4])}</span></div>`).join(''):'';
   setTimeout(()=>{SFX.win(perfect);buzz([30,60,30]);rain();const r=$('#trophy').getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,perfect?80:45,10,perfect?['#f5c33b','#ffe07a','#f2a01c','#fff']:null)},250);
+  const sb=$('#shareRound');sb.textContent='📤 שיתוף עם חבר';
+  sb.onclick=()=>shareApp(`סיימתי סבב ב"השביל לבה״ד" עם ${acc}% דיוק 💪 מתכוננים לבה״ד? ${QTOTAL.toLocaleString('en')} שאלות עם הסברים:`,sb);
+  maybeSharePopup();
   $('#again').focus({preventScroll:true});
 }
 $('#again').onclick=()=>{if(L.ctx){if(buildRound())startPathRound();else show('home')}else{show('home');launch(L.topic)}};
@@ -1148,7 +1179,7 @@ function drawCountdown(el){
   el.hidden=false;el.className='access promo';
   el.innerHTML=`<b>🎁 לקראת המבחנים: כל ${QTOTAL.toLocaleString('en')} השאלות פתוחות בחינם</b>
     <div class="cd" role="timer" aria-label="הזמן שנשאר"><span><b id="cdD">0</b><small>ימים</small></span><span><b id="cdH">00</b><small>שעות</small></span><span><b id="cdM">00</b><small>דקות</small></span><span><b id="cdS">00</b><small>שניות</small></span></div>
-    <p class="pw-note">${untilTxt(end)}. אחרי זה: ${FREE_Q.length} שאלות חינם, או מנוי ב־${priceTxt()} לחודש לכל השאלות.</p>`;
+    <p class="pw-note">${untilTxt(end)}</p>`;
   const two=n=>String(n).padStart(2,'0');
   const tick=()=>{const left=Math.max(0,end-Date.now()),t=Math.floor(left/1000);
     const d=$('#cdD');if(!d){clearInterval(cdTimer);return}

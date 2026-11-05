@@ -6,7 +6,7 @@
 // the server keeps only SHA-256 hashes.
 import { randomBytes } from 'node:crypto';
 import { sha, getPlayer, putPlayer, board, putCode, takeCode, groupInfo, groupBoard, myGroups, createGroup, joinGroup, leaveGroup, countMyGroups, GROUP_LIMITS,
-  QUICK, isMember, addMessage, recentSends, listMessages, deleteMessage, messageAuthor, lastMessageIds, announceProgress } from './_lib/players.mjs';
+  setReferrer, markShared, QUICK, isMember, addMessage, recentSends, listMessages, deleteMessage, messageAuthor, lastMessageIds, announceProgress } from './_lib/players.mjs';
 
 const MAX = { correct: 5000, rounds: 5000, stage: 1000, xp: 10_000_000 };
 const CODE_TTL = 15 * 60 * 1000;
@@ -92,6 +92,14 @@ export default async function handler(req, res) {
         progress: cleanProgress(b.progress) || (prev && prev.progress) || null
       };
       await putPlayer(row);
+      if (!prev && b.ref) await setReferrer(id, String(b.ref));
+      return res.status(200).json({ ok: true });
+    }
+
+    // the player tapped "share" (counted; the 7-day reward for sharing will build on this)
+    if (action === 'shared') {
+      if (!prev) await putPlayer({ id, name: '', hashes: [sha(secret)], xp: 0, correct: 0, rounds: 0, stage: 1, progress: null, updated: Date.now() });
+      await markShared(id);
       return res.status(200).json({ ok: true });
     }
 
@@ -166,6 +174,7 @@ export default async function handler(req, res) {
       progress: cleanProgress(b.progress) || (prev && prev.progress) || null
     };
     await putPlayer(row);
+    if (!prev && b.ref) await setReferrer(id, String(b.ref));
     if (prev) await announceProgress(row, prev.xp || 0, prev.stage || 1).catch(e => console.error('announce', e && e.message));
     return res.status(200).json({ players: await board() });
   } catch (e) {

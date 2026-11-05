@@ -7,6 +7,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { sql } from './_lib/db.mjs';
 import { cookies } from './_lib/session.mjs';
 import { applyPayment } from './_lib/billing.mjs';
+import { referralStats } from './_lib/players.mjs';
 import { sumitConfigured, listPayments, cancelAllRecurring, SumitError } from './_lib/sumit.mjs';
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -178,6 +179,7 @@ export default async function handler(req, res) {
     const subs = await sql`select u.email, u.name, s.status, s.paid_until, s.updated_at from subscriptions s join users u on u.id = s.user_id order by (s.status = 'cancel_requested') desc, s.paid_until desc limit 300`;
     const users = await sql`select u.email, u.name, u.created_at, s.status, s.paid_until from users u left join subscriptions s on s.user_id = u.id order by u.created_at desc limit 200`;
     const [{ n: userCount }] = await sql`select count(*)::int as n from users`;
+    const refs = await referralStats();
     const orphans = await sql`select ref, email, amount, paid_at, kind from payments where user_id is null order by paid_at desc limit 100`;
     const events = await sql`select id, received_at, matched, body from webhook_events order by id desc limit 15`;
     const active = subs.filter(s => s.paid_until && new Date(s.paid_until) > new Date()).length;
@@ -194,6 +196,7 @@ ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
   <div style="display:flex;gap:6px;flex-wrap:wrap">${['sumitcancel:ביטול בסאמיט עכשיו', 'canceled:ביטלתי בסאמיט'].map(x => { const [d, l] = x.split(':'); return `<form method="post"><input type="hidden" name="email" value="${esc(s.email)}"><input type="hidden" name="do" value="${d}"><button class="${d === 'canceled' ? 'ghost' : ''}">${l}</button></form>`; }).join('')}</div></div>`).join('')}` : '<span class="muted">אין</span>'}</div>
 <h2>תשלומים שלא שויכו למשתמש (${orphans.length})</h2><div class="box">${orphans.length ? `<p class="muted">המייל בתשלום לא תואם אף משתמש. כשהמשתמש יתחבר עם המייל הזה הגישה תיפתח לבד; אם שילם עם מייל אחר, הוסיפו לו חודש לפי המייל שלו באפליקציה.</p><table>${orphans.map(o => row([esc(o.email || '(בלי מייל)'), esc(o.amount), day(o.paid_at), esc(o.kind)])).join('')}</table>` : '<span class="muted">אין</span>'}</div>
 <h2>מנויים (${subs.length})</h2><div class="box">${subs.length ? `<table><tr><th>מייל</th><th>שם</th><th>מצב</th><th>גישה עד</th></tr>${subs.map(s => row([esc(s.email), esc(s.name), status(s.status), day(s.paid_until)])).join('')}</table>` : '<span class="muted">עוד אין</span>'}</div>
+<h2>שיתופים (${refs.reduce((a, r) => a + r.brought, 0)} חברים הגיעו מקישור)</h2><div class="box">${refs.length ? `<p class="muted">מי לחץ "שיתוף" ומי הגיע דרך הקישור שלו (חבר נספר כשהוא מתחיל לתרגל).</p><table><tr><th>שם</th><th>שיתופים</th><th>הביא</th><th>הצטרפו לטבלה</th></tr>${refs.map(r => row([esc(r.name || '(בלי שם)'), r.shares, `<b>${r.brought}</b>`, r.brought_named])).join('')}</table>` : '<span class="muted">עוד אין</span>'}</div>
 <h2>כל מי שהתחבר עם Google (${userCount})</h2><div class="box"><p class="muted">"הדמיית תשלום" שולחת לשרת את אותו עדכון שסאמיט שולחת אחרי תשלום, בלי חיוב, ופותחת למשתמש מנוי לחודש. לניקוי אחרי בדיקה: "סגירת גישה".</p>${users.length ? users.map(u => { const on = u.paid_until && new Date(u.paid_until) > new Date();
   const btn = (d, label, cls) => `<form method="post"><input type="hidden" name="email" value="${esc(u.email)}"><input type="hidden" name="do" value="${d}"><button class="${cls || ''}">${label}</button></form>`;
   return `<div class="user"><div><b dir="ltr">${esc(u.email)}</b><div class="muted">${esc(u.name || '')} · הצטרף ${day(u.created_at)}</div>

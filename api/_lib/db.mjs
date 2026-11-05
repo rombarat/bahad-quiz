@@ -54,6 +54,11 @@ const SCHEMA = [
      progress jsonb,
      updated bigint not null default 0)`,
   `create index if not exists players_rank on players (xp desc) where name <> ''`,
+  // sharing: who brought whom (from a ?ref= link) and how often a player shared the app
+  `alter table players add column if not exists referred_by text`,
+  `alter table players add column if not exists shares integer not null default 0`,
+  `alter table players add column if not exists shared_at bigint`,
+  `create index if not exists players_referred_by on players (referred_by) where referred_by is not null`,
   `create table if not exists pair_codes (code text primary key, id text not null, exp bigint not null)`,
   // private group leaderboards: anyone on the board can open one and share its code with friends
   `create table if not exists groups (code text primary key, name text not null, owner text not null, created bigint not null)`,

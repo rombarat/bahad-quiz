@@ -43,15 +43,17 @@ function leaves(o, path = '', out = []) {
 export function extract(body) {
   const all = leaves(body);
   const last = p => p.split('.').pop();
-  const notOurs = p => !/(company|business|organization|organisation|user\b|sender|owner)/.test(p);
+  const notOurs = p => !/(company|business|organization|organisation|user\b|sender|owner|חברה|עסק|ארגון|שולח)/.test(p);
   // customer email: prefer fields under "customer", then any *mail* field, never the business's own
   const mails = all.filter(([p, v]) => typeof v === 'string' && EMAIL.test(v.trim()) && notOurs(p));
-  const email = (mails.find(([p]) => /customer|client|payer|buyer/.test(p) && /mail/.test(p)) ||
-                 mails.find(([p]) => /mail/.test(last(p))) || mails[0] || [])[1] || null;
+  // SUMIT triggers send the fields of a view, possibly under Hebrew names (לקוח, אימייל, דואר אלקטרוני...)
+  const MAIL = /mail|מייל|דוא"?ל|דואר/;
+  const email = (mails.find(([p]) => /customer|client|payer|buyer|לקוח|משלם/.test(p) && MAIL.test(p)) ||
+                 mails.find(([p]) => MAIL.test(last(p))) || mails[0] || [])[1] || null;
   const num = v => { const n = Number(String(v).replace(/[^\d.-]/g, '')); return Number.isFinite(n) && String(v).trim() !== '' ? n : null; };
-  const cust = all.find(([p, v]) => num(v) && (/customer(\.|_)?id$/.test(p) || (/customer/.test(p) && last(p) === 'id')));
-  const amt = all.find(([p, v]) => num(v) != null && /^(amount|total|sum|totalamount|documentvalue|paymentamount|price)$/.test(last(p)));
-  const idf = all.find(([p, v]) => v != null && v !== '' && /^(documentid|paymentid|transactionid|documentnumber|payment\.id|document\.id|id)$/.test(p.split('.').slice(-2).join('.').replace(/^(data|payload)\./, '')) );
+  const cust = all.find(([p, v]) => num(v) && (/customer(\.|_)?id$/.test(p) || (/customer|לקוח/.test(p) && /^(id|מזהה|מספר לקוח|מזהה לקוח)$/.test(last(p)))));
+  const amt = all.find(([p, v]) => num(v) != null && /^(amount|total|sum|totalamount|documentvalue|paymentamount|price|סכום|סה"כ|סהכ|סכום כולל|סה"כ לתשלום|סכום כולל מע"מ)$/.test(last(p)));
+  const idf = all.find(([p, v]) => v != null && v !== '' && /^(documentid|paymentid|transactionid|documentnumber|payment\.id|document\.id|id|entityid|מזהה|מספר מסמך|מזהה מסמך)$/.test(p.split('.').slice(-2).join('.').replace(/^(data|payload|json)\./, '')) );
   return {
     email: email ? email.trim().toLowerCase() : null,
     customerId: cust ? num(cust[1]) : null,

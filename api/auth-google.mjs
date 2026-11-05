@@ -22,8 +22,9 @@ export default async function handler(req, res) {
     const g = await verifyGoogleIdToken(String(b.credential || ''));
     if (!g) return back(false);
     const [u] = await sql`
-      insert into users (google_sub, email, name) values (${g.sub}, ${g.email}, ${g.name})
-      on conflict (google_sub) do update set email = excluded.email, name = coalesce(excluded.name, users.name)
+      insert into users (google_sub, email, name, picture) values (${g.sub}, ${g.email}, ${g.name}, ${g.picture})
+      on conflict (google_sub) do update set email = excluded.email, name = coalesce(excluded.name, users.name),
+        picture = coalesce(excluded.picture, users.picture)
       returning id`;
     await claimPayments(Number(u.id), g.email);
     setSessionCookie(res, makeSession(Number(u.id)));

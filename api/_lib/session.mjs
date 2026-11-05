@@ -60,5 +60,7 @@ export async function verifyGoogleIdToken(idToken) {
   const okExp = Number(t.exp) * 1000 > Date.now();
   const okEmail = t.email && (t.email_verified === true || t.email_verified === 'true');
   if (!okIss || !okAud || !okExp || !okEmail || !t.sub) return null;
-  return { sub: String(t.sub), email: String(t.email).toLowerCase(), name: t.name ? String(t.name).slice(0, 80) : null };
+  // Google profile picture (only https URLs on Google's image host are kept)
+  const picture = typeof t.picture === 'string' && /^https:\/\/[a-z0-9.-]+\.googleusercontent\.com\//.test(t.picture) ? t.picture.slice(0, 500) : null;
+  return { sub: String(t.sub), email: String(t.email).toLowerCase(), name: t.name ? String(t.name).slice(0, 80) : null, picture };
 }

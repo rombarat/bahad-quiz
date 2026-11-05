@@ -54,6 +54,7 @@ const SCHEMA = [
      progress jsonb,
      updated bigint not null default 0)`,
   `create index if not exists players_rank on players (xp desc) where name <> ''`,
+  `alter table users add column if not exists picture text`,
   // sharing: who brought whom (from a ?ref= link) and how often a player shared the app
   `alter table players add column if not exists referred_by text`,
   `alter table players add column if not exists shares integer not null default 0`,

@@ -11,6 +11,13 @@ import { referralStats } from './_lib/players.mjs';
 import { sumitConfigured, listPayments, cancelAllRecurring, SumitError, PRICE } from './_lib/sumit.mjs';
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const COLORS = ['#58702a', '#3b82c4', '#c87a00', '#9b4dca', '#d9443a', '#2b8a7e', '#6a7160'];
+// the first letter on a colour; a Google profile picture on top of it when there is one (removed if it fails to load)
+const avatar = (name, pic) => {
+  const n = String(name || '?').trim(), bg = COLORS[[...n].reduce((a, ch) => a + ch.codePointAt(0), 0) % COLORS.length];
+  return `<span class="av" style="background:${bg}">${esc([...n][0] || '?')}${pic ? `<img src="${esc(pic)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.remove()">` : ''}</span>`;
+};
+const ago = t => { const s = (Date.now() - Number(t)) / 1000; return !t ? '' : s < 3600 ? `לפני ${Math.max(1, Math.floor(s / 60))} דק׳` : s < 86400 ? `לפני ${Math.floor(s / 3600)} שע׳` : `לפני ${Math.floor(s / 86400)} ימים`; };
 const day = d => d ? (new Date(d).getUTCFullYear() >= 2099 ? 'לכל החיים' : new Date(d).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short' })) : '';
 
 const COOKIE = 'bq_admin', DAYS = 30;
@@ -45,6 +52,10 @@ input[type=email]{min-width:0;flex:1 1 220px;direction:ltr}button{background:var
 .err{border-color:var(--bad)}
 pre{white-space:pre-wrap;word-break:break-all;font-size:12px;margin:4px 0 0;direction:ltr;text-align:left}details{border-bottom:1px solid var(--line);padding:6px 0}
 .login{max-width:340px;margin:12vh auto 0}.login form{flex-direction:column;align-items:stretch}.login input{direction:ltr}
+.av{position:relative;overflow:hidden;width:38px;height:38px;border-radius:50%;flex:none;display:inline-grid;place-items:center;font-weight:800;color:#fff;font-size:1.05rem}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.who{display:flex;gap:10px;align-items:center;min-width:0}
+.who>div{min-width:0}
 .user{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}.user:last-child{border-bottom:0}.user b{word-break:break-all}.user form button{white-space:nowrap}button.ghost{background:none;color:var(--muted);border:1px solid var(--line)}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.top form button{background:none;color:var(--muted);text-decoration:underline;padding:0}`;
 const page = (title, inner) => `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -177,7 +188,14 @@ export default async function handler(req, res) {
     const flash = cookies(req).bq_admin_msg;
     if (flash) { msg = flash; res.setHeader('Set-Cookie', `bq_admin_msg=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${process.env.VERCEL ? '; Secure' : ''}`); }
     const subs = await sql`select u.email, u.name, s.status, s.paid_until, s.updated_at from subscriptions s join users u on u.id = s.user_id order by (s.status = 'cancel_requested') desc, s.paid_until desc limit 300`;
-    const users = await sql`select u.email, u.name, u.created_at, s.status, s.paid_until from users u left join subscriptions s on s.user_id = u.id order by u.created_at desc limit 200`;
+    const users = await sql`select u.email, u.name, u.picture, u.created_at, s.status, s.paid_until, p.name as player_name
+      from users u left join subscriptions s on s.user_id = u.id left join players p on p.id = u.player_id order by u.created_at desc limit 200`;
+    // everyone who joined the board with a name, linked to a Google account if they signed in
+    const players = await sql`select p.id, p.name, p.xp, p.correct, p.stage, p.updated, r.name as by_name,
+        (select u.email from users u where u.player_id = p.id order by u.id limit 1) as email,
+        (select u.picture from users u where u.player_id = p.id order by u.id limit 1) as picture,
+        (select count(*)::int from group_members m where m.player_id = p.id) as groups
+      from players p left join players r on r.id = p.referred_by where p.name <> '' order by p.updated desc limit 500`;
     const [{ n: userCount }] = await sql`select count(*)::int as n from users`;
     const refs = await referralStats();
     const orphans = await sql`select ref, email, amount, paid_at, kind from payments where user_id is null order by paid_at desc limit 100`;
@@ -197,10 +215,14 @@ ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
 <h2>תשלומים שלא שויכו למשתמש (${orphans.length})</h2><div class="box">${orphans.length ? `<p class="muted">המייל בתשלום לא תואם אף משתמש. כשהמשתמש יתחבר עם המייל הזה הגישה תיפתח לבד; אם שילם עם מייל אחר, הוסיפו לו חודש לפי המייל שלו באפליקציה.</p><table>${orphans.map(o => row([esc(o.email || '(בלי מייל)'), esc(o.amount), day(o.paid_at), esc(o.kind)])).join('')}</table>` : '<span class="muted">אין</span>'}</div>
 <h2>מנויים (${subs.length})</h2><div class="box">${subs.length ? `<table><tr><th>מייל</th><th>שם</th><th>מצב</th><th>גישה עד</th></tr>${subs.map(s => row([esc(s.email), esc(s.name), status(s.status), day(s.paid_until)])).join('')}</table>` : '<span class="muted">עוד אין</span>'}</div>
 <h2>שיתופים (${refs.reduce((a, r) => a + r.brought, 0)} חברים הגיעו מקישור)</h2><div class="box">${refs.length ? `<p class="muted">מי לחץ "שיתוף" ומי הגיע דרך הקישור שלו (חבר נספר כשהוא מתחיל לתרגל).</p><table><tr><th>שם</th><th>שיתופים</th><th>הביא</th><th>הצטרפו לטבלה</th></tr>${refs.map(r => row([esc(r.name || '(בלי שם)'), r.shares, `<b>${r.brought}</b>`, r.brought_named])).join('')}</table>` : '<span class="muted">עוד אין</span>'}</div>
-<h2>כל מי שהתחבר עם Google (${userCount})</h2><div class="box"><p class="muted">"הדמיית תשלום" שולחת לשרת את אותו עדכון שסאמיט שולחת אחרי תשלום, בלי חיוב, ופותחת למשתמש מנוי לחודש. לניקוי אחרי בדיקה: "סגירת גישה".</p>${users.length ? users.map(u => { const on = u.paid_until && new Date(u.paid_until) > new Date();
+<h2>שחקנים בטבלה (${players.length})</h2><div class="box"><p class="muted">כל מי שנכנס לטבלת המובילים עם שם, מהפעיל לאחרונה. מייל מופיע למי שגם התחבר עם Google.</p>
+${players.length ? players.map(p => `<div class="user"><div class="who">${avatar(p.name, p.picture)}<div><b>${esc(p.name)}</b>${p.email ? ` <span class="muted" dir="ltr">${esc(p.email)}</span>` : ''}
+  <div class="muted">${Number(p.xp).toLocaleString('en')} XP · ${p.correct} נכונות · שלב ${p.stage}${p.groups ? ` · ${p.groups} קבוצות` : ''}${p.by_name ? ` · הגיע דרך ${esc(p.by_name)}` : ''}</div></div></div>
+  <span class="muted">${ago(p.updated)}</span></div>`).join('') : '<span class="muted">עוד אין</span>'}</div>
+<h2>כל מי שהתחבר עם Google (${userCount})</h2><div class="box"><p class="muted">"הדמיית תשלום" שולחת לשרת את אותו עדכון שסאמיט שולחת אחרי תשלום, בלי חיוב, ופותחת למשתמש גישה. לניקוי אחרי בדיקה: "סגירת גישה".</p>${users.length ? users.map(u => { const on = u.paid_until && new Date(u.paid_until) > new Date();
   const btn = (d, label, cls) => `<form method="post"><input type="hidden" name="email" value="${esc(u.email)}"><input type="hidden" name="do" value="${d}"><button class="${cls || ''}">${label}</button></form>`;
-  return `<div class="user"><div><b dir="ltr">${esc(u.email)}</b><div class="muted">${esc(u.name || '')} · הצטרף ${day(u.created_at)}</div>
-    <div>${on ? `מנוי: ${status(u.status)} עד ${day(u.paid_until)}` : '<span class="muted">בלי מנוי</span>'}</div></div>
+  return `<div class="user"><div class="who">${avatar(u.player_name || u.name, u.picture)}<div><b dir="ltr">${esc(u.email)}</b><div class="muted">${esc(u.name || '')}${u.player_name ? ` · בטבלה: <b>${esc(u.player_name)}</b>` : ''} · הצטרף ${day(u.created_at)}</div>
+    <div>${on ? `${status(u.status)} ${day(u.paid_until) === 'לכל החיים' ? 'לכל החיים' : 'עד ' + day(u.paid_until)}` : '<span class="muted">בלי גישה בתשלום</span>'}</div></div></div>
     ${on ? btn('revoke', 'סגירת גישה', 'ghost') : btn('simulate', 'הדמיית תשלום')}</div>`; }).join('') : '<span class="muted">עוד אף אחד</span>'}</div>
 <h2>עדכונים אחרונים מסאמיט</h2><div class="box"><form method="post" style="margin-bottom:8px"><input type="hidden" name="do" value="sumitcheck"><button>בדיקת חיבור לסאמיט</button></form>
 ${events.length ? events.map(e => `<details><summary>${day(e.received_at)} · ${e.matched ? 'שויך' : '<span class="warn">לא שויך</span>'}</summary>${!e.matched && !/"Simulated":true/.test(e.body) && !/^\{"source":"return/.test(e.body) ? `<form method="post" style="margin:6px 0"><input type="hidden" name="do" value="reprocess"><input type="hidden" name="ev" value="${e.id}"><button>עיבוד מחדש</button></form>` : ''}<pre>${esc(e.body)}</pre></details>`).join('') : '<span class="muted">עוד לא הגיע אף עדכון</span>'}</div>

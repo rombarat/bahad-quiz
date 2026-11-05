@@ -8,6 +8,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { sql } from './_lib/db.mjs';
 import { applyPayment } from './_lib/billing.mjs';
 import { notify, adminLink } from './_lib/notify.mjs';
+import { sumitConfigured, getEntity, getDocument, PRICE } from './_lib/sumit.mjs';
 
 const EMAIL = /^[^\s@<>"']+@[^\s@<>"']+\.[a-z]{2,}$/i;
 
@@ -62,6 +63,40 @@ export function extract(body) {
   };
 }
 
+// True if a fetched card says the payment didn't go through (declined, failed, cancelled).
+export function paymentFailed(o) {
+  const all = leaves(o);
+  return all.some(([p, v]) => {
+    const k = p.split('.').pop();
+    if (/^(validpayment|isvalid|ispaid|תקין|שולם)$/.test(k)) return v === false || v === 'false' || v === 0 || v === 'לא';
+    if (/(^|_)(status|סטטוס)$/.test(k) && typeof v === 'string') return /נכשל|נדחה|בוטל|failed|declined|cancel/i.test(v);
+    return false;
+  });
+}
+
+// The trigger gave no email: ask SUMIT for the card it points at, then for the customer card (needs the API key).
+async function enrich(body, f) {
+  const out = { ...f, fetched: [] };
+  const entityId = Number(body.EntityID || (body.json && body.json.EntityID)) || null;
+  if (entityId && !out.customerId) {
+    let ent = await getEntity(entityId).catch(e => { console.error('getentity', e.message); return null; });
+    if (!ent && /מסמך|document/i.test(JSON.stringify(body.Folder || ''))) ent = await getDocument(entityId).catch(() => null);
+    if (ent) {
+      out.fetched.push({ entity: entityId, data: ent });
+      const g = extract(ent);
+      out.email = out.email || g.email;
+      out.customerId = out.customerId || g.customerId;
+      if (out.amount == null) out.amount = g.amount;
+      out.failed = paymentFailed(ent);
+    }
+  }
+  if (!out.email && out.customerId) {
+    const c = await getEntity(out.customerId).catch(e => { console.error('getentity customer', e.message); return null; });
+    if (c) { out.fetched.push({ customer: out.customerId, data: c }); out.email = extract(c).email; }
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   // one line per call (no values), so a trigger that 'was sent' can be traced in the Vercel logs
@@ -76,7 +111,18 @@ export default async function handler(req, res) {
     const body = parseBody(req);
     const raw = JSON.stringify(body).slice(0, 20000);
     const [ev] = await sql`insert into webhook_events (body) values (${raw}) returning id`;
-    const f = extract(body);
+    let f = extract(body);
+    if (f.failed === undefined) f.failed = paymentFailed(body);
+    if (!f.email && sumitConfigured()) {
+      f = await enrich(body, f);
+      // keep what SUMIT returned next to the trigger body, for the admin page
+      if (f.fetched.length) await sql`update webhook_events set body = ${(raw + '\n\nמסאמיט: ' + JSON.stringify(f.fetched)).slice(0, 40000)} where id = ${ev.id}`;
+    }
+    // only an approved payment of at least the price opens access
+    if (f.failed || (f.amount != null && f.amount > 0 && f.amount < PRICE() - 0.01)) {
+      console.log('sumit-webhook: not a valid subscription payment', JSON.stringify({ failed: !!f.failed, amount: f.amount }));
+      return res.status(200).json({ ok: true, matched: false, note: f.failed ? 'payment not approved' : 'amount below price' });
+    }
     const ref = f.id ? `sumit-${f.id}` : `hook-${createHash('sha256').update(raw).digest('hex').slice(0, 24)}`;
     const unmatched = what => notify(`תשלום שלא שויך למשתמש${f.email ? ': ' + f.email : ''}`, [
       what,

@@ -67,3 +67,16 @@ export async function getPayment(paymentId) {
     email: c.EmailAddress || p.EmailAddress || null
   };
 }
+
+// A card from SUMIT's CRM by its id: a credit-card transaction, a document or a customer.
+// Triggers send only { Folder, EntityID, Type, Properties }; SUMIT's advice is to fetch the customer card
+// this way to get the email. Returns the entity object (shape varies by folder) or null.
+export async function getEntity(entityId) {
+  const d = await call('/crm/data/getentity/', { EntityID: Number(entityId) });
+  return d.Entity || d || null;
+}
+// A document (invoice/receipt) with its customer, for triggers on the documents folder.
+export async function getDocument(documentId) {
+  const d = await call('/accounting/documents/getdetails/', { DocumentID: Number(documentId) });
+  return d.Document || d || null;
+}

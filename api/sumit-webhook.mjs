@@ -43,7 +43,7 @@ function leaves(o, path = '', out = []) {
 
 export function extract(body) {
   const all = leaves(body);
-  const last = p => p.split('.').pop();
+  const last = p => p.split('.').filter(x => !/^\d+$/.test(x)).pop() || ''; // SUMIT wraps values in arrays: a.0 → a
   const notOurs = p => !/(company|business|organization|organisation|user\b|sender|owner|חברה|עסק|ארגון|שולח)/.test(p);
   // customer email: prefer fields under "customer", then any *mail* field, never the business's own
   const mails = all.filter(([p, v]) => typeof v === 'string' && EMAIL.test(v.trim()) && notOurs(p));
@@ -53,7 +53,7 @@ export function extract(body) {
                  mails.find(([p]) => MAIL.test(last(p))) || mails[0] || [])[1] || null;
   const num = v => { const n = Number(String(v).replace(/[^\d.-]/g, '')); return Number.isFinite(n) && String(v).trim() !== '' ? n : null; };
   const cust = all.find(([p, v]) => num(v) && (/customer(\.|_)?id$/.test(p) || (/customer|לקוח/.test(p) && /^(id|מזהה|מספר לקוח|מזהה לקוח)$/.test(last(p)))));
-  const amt = all.find(([p, v]) => num(v) != null && /^(amount|total|sum|totalamount|documentvalue|paymentamount|price|סכום|סה"כ|סהכ|סכום כולל|סה"כ לתשלום|סכום כולל מע"מ)$/.test(last(p)));
+  const amt = all.find(([p, v]) => num(v) != null && /^(amount|total|sum|totalamount|documentvalue|paymentamount|price|accounting_displaycompanyvalue|accounting_totalvalue|accounting_value|סכום|סה"כ|סהכ|סכום כולל|סה"כ לתשלום|סכום כולל מע"מ)$/.test(last(p)));
   const idf = all.find(([p, v]) => v != null && v !== '' && /^(documentid|paymentid|transactionid|documentnumber|payment\.id|document\.id|id|entityid|מזהה|מספר מסמך|מזהה מסמך)$/.test(p.split('.').slice(-2).join('.').replace(/^(data|payload|json)\./, '')) );
   return {
     email: email ? email.trim().toLowerCase() : null,
@@ -67,7 +67,7 @@ export function extract(body) {
 export function paymentFailed(o) {
   const all = leaves(o);
   return all.some(([p, v]) => {
-    const k = p.split('.').pop();
+    const k = p.split('.').filter(x => !/^\d+$/.test(x)).pop() || '';
     if (/^(validpayment|isvalid|ispaid|תקין|שולם)$/.test(k)) return v === false || v === 'false' || v === 0 || v === 'לא';
     if (/(^|_)(status|סטטוס)$/.test(k) && typeof v === 'string') return /נכשל|נדחה|בוטל|failed|declined|cancel/i.test(v);
     return false;

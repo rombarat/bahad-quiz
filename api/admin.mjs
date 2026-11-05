@@ -60,9 +60,30 @@ function form(req) {
   return Object.fromEntries(new URLSearchParams(String(req.body || '')));
 }
 
-async function act(b) {
+// Sends this server's own webhook the same kind of request SUMIT sends after a payment, so the whole path
+// (webhook → match by email → access) can be tried without charging a card.
+async function simulate(req, email) {
+  const key = process.env.SUMIT_WEBHOOK_KEY;
+  if (!key) return 'חסר SUMIT_WEBHOOK_KEY ב־Vercel';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const proto = req.headers['x-forwarded-proto'] || (/^localhost|^127\./.test(host) ? 'http' : 'https');
+  const id = `SIM-${Date.now()}`;
+  const r = await fetch(`${proto}://${host}/api/sumit-webhook?key=${encodeURIComponent(key)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ Simulated: true, Customer: { Name: 'הדמיה', EmailAddress: email }, Document: { ID: id, Total: 19.9 } }),
+    signal: AbortSignal.timeout(15000)
+  }).catch(e => ({ ok: false, status: 0, json: async () => ({ error: e.message }) }));
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) return `ההדמיה נכשלה (${r.status || 'אין חיבור'}): ${j.error || ''}`;
+  if (!j.matched) return `העדכון התקבל, אבל אין עדיין משתמש עם ${email}. התשלום שמור, והגישה תיפתח כשהוא יתחבר עם Google במייל הזה.`;
+  const [s] = await sql`select s.paid_until from subscriptions s join users u on u.id = s.user_id where lower(u.email) = ${email}`;
+  return `הצליח: העדכון שויך ל־${email} והמנוי פעיל עד ${day(s && s.paid_until)}. באפליקציה: לרענן או ללחוץ "כבר שילמתי, לבדוק שוב".`;
+}
+
+async function act(b, req) {
   const email = String(b.email || '').trim().toLowerCase();
   if (!email) return 'חסר מייל';
+  if (b.do === 'simulate') return simulate(req, email);
   if (b.do === 'grant') {
     const months = Math.min(12, Math.max(1, Number(b.months) || 1));
     // stack on top of any time already paid for
@@ -98,7 +119,7 @@ export default async function handler(req, res) {
   if (!signedIn(req)) return send(res, req.method === 'GET' ? 200 : 401, loginPage(''));
   try {
     let msg = '';
-    if (req.method === 'POST') msg = await act(b);
+    if (req.method === 'POST') msg = await act(b, req);
     const subs = await sql`select u.email, u.name, s.status, s.paid_until, s.updated_at from subscriptions s join users u on u.id = s.user_id order by (s.status = 'cancel_requested') desc, s.paid_until desc limit 300`;
     const orphans = await sql`select ref, email, amount, paid_at, kind from payments where user_id is null order by paid_at desc limit 100`;
     const events = await sql`select id, received_at, matched, body from webhook_events order by id desc limit 15`;
@@ -110,7 +131,7 @@ export default async function handler(req, res) {
 ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
 <h2>פעולה לפי מייל</h2><div class="box"><form method="post">
 <input type="email" name="email" placeholder="המייל שאיתו התחבר באפליקציה" required>
-<select name="do"><option value="grant">הוספת חודשים</option><option value="canceled">סימון: ביטלתי בסאמיט</option><option value="revoke">סגירת גישה עכשיו</option></select>
+<select name="do"><option value="grant">הוספת חודשים</option><option value="simulate">הדמיית תשלום (בלי חיוב)</option><option value="canceled">סימון: ביטלתי בסאמיט</option><option value="revoke">סגירת גישה עכשיו</option></select>
 <input type="number" name="months" value="1" min="1" max="12" style="width:70px"><button>ביצוע</button></form></div>
 <h2>בקשות ביטול (${requests.length})</h2><div class="box">${requests.length ? `<p class="muted">לבטל את הוראת הקבע של כל אחד מהם בסאמיט, ואז לסמן "ביטלתי בסאמיט".</p><table>${requests.map(s => row([esc(s.email), esc(s.name), `גישה עד ${day(s.paid_until)}`, `ביקש ב־${day(s.updated_at)}`])).join('')}</table>` : '<span class="muted">אין</span>'}</div>
 <h2>תשלומים שלא שויכו למשתמש (${orphans.length})</h2><div class="box">${orphans.length ? `<p class="muted">המייל בתשלום לא תואם אף משתמש. כשהמשתמש יתחבר עם המייל הזה הגישה תיפתח לבד; אם שילם עם מייל אחר, הוסיפו לו חודש לפי המייל שלו באפליקציה.</p><table>${orphans.map(o => row([esc(o.email || '(בלי מייל)'), esc(o.amount), day(o.paid_at), esc(o.kind)])).join('')}</table>` : '<span class="muted">אין</span>'}</div>

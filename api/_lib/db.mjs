@@ -55,6 +55,10 @@ const SCHEMA = [
      updated bigint not null default 0)`,
   `create index if not exists players_rank on players (xp desc) where name <> ''`,
   `create table if not exists pair_codes (code text primary key, id text not null, exp bigint not null)`,
+  // private group leaderboards: anyone on the board can open one and share its code with friends
+  `create table if not exists groups (code text primary key, name text not null, owner text not null, created bigint not null)`,
+  `create table if not exists group_members (code text not null, player_id text not null, joined bigint not null, primary key (code, player_id))`,
+  `create index if not exists group_members_player on group_members (player_id)`,
   // raw webhook bodies, kept so a payment that didn't match anyone can be checked and assigned by hand
   `create table if not exists webhook_events (
      id bigserial primary key,

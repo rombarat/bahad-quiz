@@ -59,3 +59,41 @@ export async function takeCode(code) {
   const [c] = await sql`delete from pair_codes where code = ${code} returning id, exp`;
   return c ? { id: c.id, exp: Number(c.exp) } : null;
 }
+
+// ---- private group leaderboards ----
+export const GROUP_LIMITS = { perPlayer: 20, members: 300 };
+
+export async function groupInfo(code) {
+  const [g] = await sql`select g.code, g.name, g.owner, (select count(*)::int from group_members m where m.code = g.code) as count
+    from groups g where g.code = ${code}`;
+  return g ? { code: g.code, name: g.name, owner: g.owner, count: Number(g.count) || 0 } : null;
+}
+export async function groupBoard(code) {
+  const rows = await sql`select p.id, p.name, p.xp, p.correct, p.rounds, p.stage, p.updated
+    from group_members m join players p on p.id = m.player_id
+    where m.code = ${code} and p.name <> '' order by p.xp desc, p.correct desc, p.updated asc limit ${GROUP_LIMITS.members}`;
+  return rows.map(r => ({ id: r.id, name: r.name, xp: Number(r.xp) || 0, correct: Number(r.correct) || 0, rounds: Number(r.rounds) || 0, stage: Number(r.stage) || 1, updated: Number(r.updated) || 0 }));
+}
+export async function myGroups(playerId) {
+  const rows = await sql`select g.code, g.name, g.owner, (select count(*)::int from group_members x where x.code = g.code) as count
+    from group_members m join groups g on g.code = m.code where m.player_id = ${playerId} order by m.joined`;
+  return rows.map(g => ({ code: g.code, name: g.name, owner: g.owner === playerId, count: Number(g.count) || 0 }));
+}
+export async function createGroup(code, name, owner) {
+  const ins = await sql`insert into groups (code, name, owner, created) values (${code}, ${name}, ${owner}, ${Date.now()}) on conflict do nothing returning code`;
+  if (!ins.length) return false;
+  await sql`insert into group_members (code, player_id, joined) values (${code}, ${owner}, ${Date.now()}) on conflict do nothing`;
+  return true;
+}
+export async function joinGroup(code, playerId) {
+  await sql`insert into group_members (code, player_id, joined) values (${code}, ${playerId}, ${Date.now()}) on conflict do nothing`;
+}
+export async function leaveGroup(code, playerId) {
+  await sql`delete from group_members where code = ${code} and player_id = ${playerId}`;
+  const [{ n }] = await sql`select count(*)::int as n from group_members where code = ${code}`;
+  if (!Number(n)) await sql`delete from groups where code = ${code}`;
+}
+export async function countMyGroups(playerId) {
+  const [{ n }] = await sql`select count(*)::int as n from group_members where player_id = ${playerId}`;
+  return Number(n) || 0;
+}

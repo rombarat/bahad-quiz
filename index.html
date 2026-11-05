@@ -283,6 +283,12 @@ a.big[aria-disabled="true"]{opacity:.45;pointer-events:none}
 .bd-sync{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:2px solid var(--line);padding-top:12px}
 .bd-sync .big{width:auto;padding:10px 18px;font-size:.98rem}
 .rd{display:flex;gap:8px}
+.bd-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px;margin:-2px}
+.bd-tabs::-webkit-scrollbar{display:none}
+.bd-tab{flex:none;border:2px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 13px;font:700 .9rem var(--display);white-space:nowrap;max-width:60vw;overflow:hidden;text-overflow:ellipsis}
+.bd-tab[aria-pressed="true"]{border-color:var(--sel);background:var(--sel-soft);color:var(--sel)}
+.bd-tab.add{border-style:dashed;color:var(--accent)}
+.modal .or{margin:4px 0 0;color:var(--muted);font-size:.92rem}
 .rd .big{width:auto}
 #rdCode{text-align:center;letter-spacing:.3em;font:800 1.3rem var(--display);text-transform:uppercase;direction:ltr}
 .code{font:900 2.4rem var(--display);letter-spacing:.25em;direction:ltr;color:var(--accent);background:var(--accent-soft);border-radius:16px;padding:14px 8px;font-variant-numeric:tabular-nums;user-select:all}
@@ -711,6 +717,9 @@ function startPathRound(){const r=buildRound();if(r)r.qs=r.qs.filter(j=>D[j]);if
 /* ---------- LEADERBOARD + DEVICE SYNC (Vercel function /api/leaderboard) ---------- */
 const API='/api/leaderboard';
 let ME=store.get('bq-me',null), BOARD=null, boardOk=false, TOTALXP=store.get('bq-xp',0);
+// private group boards: GROUPS = the groups I'm in, BSEL = which board is shown ('all' or a group code)
+let GROUPS=store.get('bq-groups',[]), BSEL=store.get('bq-bsel','all'), GBOARD=null, GINFO=null, groupsSynced=false;
+if(BSEL!=='all'&&!GROUPS.some(g=>g.code===BSEL))BSEL='all';
 // XP wasn't tracked before the leaderboard existed: every correctly answered question is worth at least 10 XP
 function xpFloor(){const f=DONE.size*10;if(TOTALXP<f){TOTALXP=f;store.set('bq-xp',TOTALXP)}}
 xpFloor();
@@ -727,8 +736,50 @@ if(!ACCT)ACCT={id:rid(16),secret:rid(32)};
 function saveAcct(){store.set('bq-acct',ACCT);try{document.cookie=`bq_acct=${ACCT.id}.${ACCT.secret}; max-age=34560000; path=/; SameSite=Lax${location.protocol==='https:'?'; Secure':''}`}catch(e){}}
 saveAcct();
 async function api(method,body){const r=await fetch(API,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||r.status);e.status=r.status;throw e}return j}
-async function loadBoard(){try{BOARD=(await api('GET')).players;boardOk=true}catch(e){boardOk=false}drawBoard()}
-async function syncMe(){if(!ME)return null;try{BOARD=(await api('POST',{action:'save',...ME,...myStats(),progress:myProgress()})).players;boardOk=true}catch(e){boardOk=false}drawBoard();return BOARD}
+async function loadBoard(){try{BOARD=(await api('GET')).players;boardOk=true}catch(e){boardOk=false}
+  if(ME&&!groupsSynced){groupsSynced=true;syncGroups()}
+  await loadGroup();drawBoard()}
+async function loadGroup(){
+  if(BSEL==='all')return;
+  try{const r=await fetch(API+'?group='+BSEL,{cache:'no-store'});
+    if(r.status===404){GROUPS=GROUPS.filter(g=>g.code!==BSEL);store.set('bq-groups',GROUPS);BSEL='all';store.set('bq-bsel',BSEL);return}
+    const j=await r.json();if(j.players){GBOARD=j.players;GINFO=j.group}}catch(e){}}
+async function syncGroups(){
+  if(!ME)return;
+  try{const r=await api('POST',{action:'gmine',id:ME.id,secret:ME.secret});GROUPS=r.groups||[];store.set('bq-groups',GROUPS);
+    if(BSEL!=='all'&&!GROUPS.some(g=>g.code===BSEL)){BSEL='all';store.set('bq-bsel',BSEL)}drawBoard()}catch(e){}}
+function selBoard(code){BSEL=code;store.set('bq-bsel',code);GBOARD=null;GINFO=GROUPS.find(g=>g.code===code)||null;SFX.tap();drawBoard();loadGroup().then(drawBoard)}
+const GERR={'join first':'קודם צריך להצטרף לטבלה עם שם.','group not found':'לא מצאתי קבוצה עם הקוד הזה. בדקו אותו ונסו שוב.','too many groups':'אפשר להיות בעד 20 קבוצות.','group full':'הקבוצה מלאה.'};
+async function doJoinGroup(code){
+  code=String(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const r=await api('POST',{action:'gjoin',id:ME.id,secret:ME.secret,code});
+  GROUPS=r.groups;store.set('bq-groups',GROUPS);selBoard(r.group.code);SFX.unlock();toast('הצטרפת לקבוצה "'+r.group.name+'"!');return r.group}
+function groupModal(){
+  const m=modal(`<h3>טבלה פרטית עם חברים</h3><p>פותחים קבוצה, שולחים לחברים קישור, ומתחרים רק ביניכם.</p>
+    <form id="gcForm" class="rd"><input id="gcName" maxlength="24" placeholder="שם הקבוצה, למשל: מחלקה 3" required><button class="big" type="submit">יצירה</button></form>
+    <p class="or">יש לך קוד מחבר? הצטרפות לקבוצה שלו:</p>
+    <form id="gjForm" class="rd"><input id="gjCode" maxlength="7" placeholder="קוד בן 6 תווים" autocapitalize="characters" spellcheck="false" required><button class="big" type="submit">הצטרפות</button></form>
+    <p class="err" id="gErr" hidden></p><button class="big ghost" type="button" id="gCancel">ביטול</button>`);
+  $('#gcName').focus();$('#gCancel').onclick=()=>m.remove();
+  const fail=e=>{$('#gErr').hidden=false;$('#gErr').textContent=GERR[e.message]||'משהו השתבש. בדקו את החיבור ונסו שוב.';SFX.no&&SFX.no()};
+  $('#gcForm').onsubmit=async e=>{e.preventDefault();const b=$('#gcForm .big');b.disabled=true;
+    try{const r=await api('POST',{action:'gcreate',id:ME.id,secret:ME.secret,name:$('#gcName').value.trim()});
+      GROUPS=r.groups;store.set('bq-groups',GROUPS);m.remove();selBoard(r.group.code);SFX.unlock();inviteModal(r.group,true)}
+    catch(err){fail(err);b.disabled=false}};
+  $('#gjForm').onsubmit=async e=>{e.preventDefault();const b=$('#gjForm .big');b.disabled=true;
+    try{await doJoinGroup($('#gjCode').value);m.remove()}catch(err){fail(err);b.disabled=false}};
+}
+function inviteModal(g,fresh){
+  const url=location.origin+'/?join='+g.code,txt=`בואו להתחרות איתי בבוחן בה״ד 1! הצטרפו לקבוצה "${g.name}":`;
+  const m=modal(`<h3>${fresh?'הקבוצה נפתחה!':'הזמנת חברים'}</h3><p>שלחו לחברים את הקישור. מי שנכנס דרכו מצטרף לקבוצה "${esc(g.name)}". אפשר גם להקליד את הקוד:</p>
+    <div class="code">${esc(g.code)}</div>
+    <button class="big" type="button" id="ivShare">${navigator.share?'שליחה לחברים':'העתקת הקישור'}</button><button class="big ghost" type="button" id="ivClose">סגירה</button>`);
+  $('#ivClose').onclick=()=>m.remove();
+  $('#ivShare').onclick=async()=>{const c=$('#ivShare');
+    if(navigator.share){try{await navigator.share({title:'בוחן בה״ד 1',text:txt,url});return}catch(e){if(e&&e.name==='AbortError')return}}
+    try{await navigator.clipboard.writeText(txt+' '+url);c.textContent='הקישור הועתק';SFX.select()}catch(e){c.textContent=url}};
+}
+async function syncMe(){if(!ME)return null;try{BOARD=(await api('POST',{action:'save',...ME,...myStats(),progress:myProgress()})).players;boardOk=true}catch(e){boardOk=false}await loadGroup();drawBoard();return BOARD}
 let lastBackup=0;
 async function backup(force){
   if(ME)return syncMe();
@@ -783,20 +834,30 @@ function drawBoard(){
   const el=$('#board');if(!el)return;el.hidden=false;
   if(!boardOk&&!BOARD){el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b></div><p class="bd-note">הטבלה לא זמינה כרגע. ההתקדמות שלך נשמרת בכל מקרה.</p>`;return}
   if(!ME){el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b><span>${BOARD?BOARD.length:0} משתתפים</span></div>
-    <p class="bd-note">כתוב שם כדי להיכנס לטבלה ולראות איפה כולם נמצאים.</p>
+    <p class="bd-note">${store.get('bq-pjoin',null)?'<b>הוזמנת לקבוצה של חברים!</b> כתוב שם כדי להצטרף אליה.':'כתוב שם כדי להיכנס לטבלה ולראות איפה כולם נמצאים.'}</p>
     <form class="bd-join" id="joinForm"><input id="joinName" maxlength="20" placeholder="השם שלך" autocomplete="nickname" required><button class="big" type="submit">הצטרף</button></form>
     <button class="link" id="haveCode">כבר משחק בטלפון או במחשב אחר? יש לי קוד</button>
     ${rows(BOARD||[],5)}`;
     $('#haveCode').onclick=()=>codeModal();
-    $('#joinForm').onsubmit=async e=>{e.preventDefault();const n=$('#joinName').value.trim();if(!n)return;ME={...ACCT,name:n.slice(0,20)};store.set('bq-me',ME);SFX.unlock();await syncMe();toast('ברוך הבא לטבלה, '+ME.name+'!')};
+    $('#joinForm').onsubmit=async e=>{e.preventDefault();const n=$('#joinName').value.trim();if(!n)return;ME={...ACCT,name:n.slice(0,20)};store.set('bq-me',ME);SFX.unlock();await syncMe();toast('ברוך הבא לטבלה, '+ME.name+'!');
+      const pj=store.get('bq-pjoin',null);if(pj){store.set('bq-pjoin',null);try{await doJoinGroup(pj)}catch(err){toast(GERR[err.message]||'ההצטרפות לקבוצה נכשלה')}}};
     return}
-  const b=BOARD||[],r=rankOf(b,ME.id),me=b[r];
+  const inG=BSEL!=='all',g=inG?(GINFO||GROUPS.find(x=>x.code===BSEL)||{code:BSEL,name:'קבוצה'}):null;
+  const b=inG?(GBOARD||[]):(BOARD||[]),r=rankOf(b,ME.id),me=b[r];
+  const tabs=`<div class="bd-tabs" role="group" aria-label="איזו טבלה"><button class="bd-tab" data-b="all" aria-pressed="${!inG}">כולם</button>${GROUPS.map(x=>`<button class="bd-tab" data-b="${esc(x.code)}" aria-pressed="${x.code===BSEL}">${esc(x.name)}</button>`).join('')}<button class="bd-tab add" id="gNew">+ קבוצה עם חברים</button></div>`;
   let chase='';
   if(r>0){const ahead=b[r-1],gap=ahead.xp-(me?me.xp:0)+1;chase=`<p class="bd-chase">עוד <b>${gap} XP</b> כדי לעקוף את <b>${esc(ahead.name)}</b></p>`}
   else if(r===0&&b.length>1)chase=`<p class="bd-chase lead">אתה במקום הראשון! ${esc(b[1].name)} במרחק ${b[0].xp-b[1].xp} XP</p>`;
-  el.innerHTML=`<div class="bd-head"><b>טבלת המובילים</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button></span></div>${chase}${rows(b,8)}
-    <div class="bd-sync"><button class="big ghost" id="linkDev">סנכרון מכשיר</button><button class="link" id="haveCode2">יש לי קוד ממכשיר אחר</button></div>`;
-  $('#linkDev').onclick=linkModal;$('#haveCode2').onclick=()=>codeModal();
+  const lonely=inG&&GBOARD&&b.length<2?'<p class="bd-note">בינתיים רק אתה כאן. הזמן חברים כדי להתחרות!</p>':'';
+  el.innerHTML=`<div class="bd-head"><b>${inG?esc(g.name):'טבלת המובילים'}</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button></span></div>${tabs}${chase}${lonely}${inG&&!GBOARD?'<p class="bd-note">טוען...</p>':rows(b,inG?30:8)}
+    ${inG?`<div class="bd-sync"><button class="big" id="gInvite">הזמנת חברים</button><button class="link" id="gLeave">יציאה מהקבוצה</button></div>`
+      :`<div class="bd-sync"><button class="big ghost" id="linkDev">סנכרון מכשיר</button><button class="link" id="haveCode2">יש לי קוד ממכשיר אחר</button></div>`}`;
+  el.querySelectorAll('.bd-tab[data-b]').forEach(t=>t.onclick=()=>{if(t.dataset.b!==BSEL)selBoard(t.dataset.b)});
+  $('#gNew').onclick=groupModal;
+  if(inG){$('#gInvite').onclick=()=>inviteModal(g);
+    $('#gLeave').onclick=async()=>{const x=$('#gLeave');if(x.dataset.sure!=='1'){x.dataset.sure='1';x.textContent='בטוח? לחיצה נוספת יוצאת';return}
+      try{const rr=await api('POST',{action:'gleave',id:ME.id,secret:ME.secret,code:BSEL});GROUPS=rr.groups;store.set('bq-groups',GROUPS);selBoard('all');toast('יצאת מהקבוצה')}catch(e){toast('היציאה נכשלה, נסו שוב')}}}
+  else{$('#linkDev').onclick=linkModal;$('#haveCode2').onclick=()=>codeModal()}
   $('#rename').onclick=()=>{const m=modal(`<form id="rnForm" class="rd" style="flex-direction:column"><h3>שינוי שם</h3><input id="rnName" maxlength="20" value="${esc(ME.name)}" required><button class="big" type="submit">שמור</button><button class="big ghost" type="button" id="rnCancel">ביטול</button></form>`);$('#rnName').focus();$('#rnCancel').onclick=()=>m.remove();$('#rnForm').onsubmit=e=>{e.preventDefault();const n=$('#rnName').value.trim();if(n){ME.name=n.slice(0,20);store.set('bq-me',ME);syncMe()}m.remove()}};
 }
 function rows(b,max){
@@ -1084,6 +1145,13 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&SIGNED&&l
 if(store.get('bq-adopt',0))adoptAcct();
 else if(ME)pullMe().then(syncMe);
 (()=>{const q=new URLSearchParams(location.search).get('code');if(!q)return;history.replaceState(null,'',location.pathname);codeModal(q.toUpperCase())})();
+// group invite link: /?join=CODE
+(()=>{const j=new URLSearchParams(location.search).get('join');if(!j)return;history.replaceState(null,'',location.pathname);
+  const code=j.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);if(code.length!==6)return;
+  if(typeof setTab==='function')setTab('path');
+  if(ME)doJoinGroup(code).catch(e=>toast(GERR[e.message]||'ההצטרפות לקבוצה נכשלה'));
+  else{store.set('bq-pjoin',code);drawBoard();toast('הוזמנת לקבוצה! כתוב שם בטבלת המובילים כדי להצטרף');
+    requestAnimationFrame(()=>{const f=$('#joinName');if(f){f.scrollIntoView({block:'center'});f.focus()}})}})();
 </script>
 </body>
 </html>

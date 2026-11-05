@@ -5,7 +5,7 @@
 // Secrets never get stored in plain text: each device holds its own secret,
 // the server keeps only SHA-256 hashes.
 import { randomBytes } from 'node:crypto';
-import { sha, getPlayer, putPlayer, board, putCode, takeCode } from './_lib/players.mjs';
+import { sha, getPlayer, putPlayer, board, putCode, takeCode, groupInfo, groupBoard, myGroups, createGroup, joinGroup, leaveGroup, countMyGroups, GROUP_LIMITS } from './_lib/players.mjs';
 
 const MAX = { correct: 5000, rounds: 5000, stage: 1000, xp: 10_000_000 };
 const CODE_TTL = 15 * 60 * 1000;
@@ -41,6 +41,13 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       // every open home screen polls this; let the CDN answer most of those
       res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=10, stale-while-revalidate=30');
+      // ?group=CODE → that private group's board (the code is what makes it private: only people who got it can see it)
+      const gcode = String((req.query && req.query.group) || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (gcode) {
+        const g = gcode.length === 6 ? await groupInfo(gcode) : null;
+        if (!g) return res.status(404).json({ error: 'group not found' });
+        return res.status(200).json({ group: { code: g.code, name: g.name, count: g.count }, players: await groupBoard(gcode) });
+      }
       return res.status(200).json({ players: await board() });
     }
     if (req.method !== 'POST') { res.setHeader('Allow', 'GET, POST'); return res.status(405).json({ error: 'method not allowed' }); }
@@ -83,6 +90,29 @@ export default async function handler(req, res) {
       };
       await putPlayer(row);
       return res.status(200).json({ ok: true });
+    }
+
+    // ---- private groups (only for players already on the board) ----
+    if (action === 'gmine') return res.status(200).json({ groups: prev ? await myGroups(id) : [] });
+    if (action === 'gcreate' || action === 'gjoin' || action === 'gleave') {
+      if (!prev || !prev.name) return res.status(404).json({ error: 'join first' });
+      if (action === 'gcreate') {
+        const gname = cleanName(b.name).slice(0, 24);
+        if (!gname) return res.status(400).json({ error: 'name required' });
+        if (await countMyGroups(id) >= GROUP_LIMITS.perPlayer) return res.status(429).json({ error: 'too many groups' });
+        let code = null;
+        for (let i = 0; i < 5 && !code; i++) { const c = token(6, CODE_ABC); if (await createGroup(c, gname, id)) code = c; }
+        if (!code) return res.status(500).json({ error: 'try again' });
+        return res.status(200).json({ group: { code, name: gname, owner: true, count: 1 }, groups: await myGroups(id) });
+      }
+      const gcode = String(b.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const g = gcode.length === 6 ? await groupInfo(gcode) : null;
+      if (!g) return res.status(404).json({ error: 'group not found' });
+      if (action === 'gleave') { await leaveGroup(gcode, id); return res.status(200).json({ groups: await myGroups(id) }); }
+      if (g.count >= GROUP_LIMITS.members) return res.status(429).json({ error: 'group full' });
+      if (await countMyGroups(id) >= GROUP_LIMITS.perPlayer) return res.status(429).json({ error: 'too many groups' });
+      await joinGroup(gcode, id);
+      return res.status(200).json({ group: { code: g.code, name: g.name, count: g.count + 1 }, groups: await myGroups(id) });
     }
 
     if (action === 'mkcode') {

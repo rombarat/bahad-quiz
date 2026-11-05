@@ -97,3 +97,61 @@ export async function countMyGroups(playerId) {
   const [{ n }] = await sql`select count(*)::int as n from group_members where player_id = ${playerId}`;
   return Number(n) || 0;
 }
+
+// ---- group chat ----
+// Ready-made reactions: the client sends only the index, so their text can't be altered.
+export const QUICK = ['אני אעקוף אותך 😤', 'וואו, איך הגעת לשם?! 🤯', 'כל הכבוד! 👏', '🔥🔥🔥', 'מי בא לסבב? 💪', 'חכה חכה... 😏', 'זה לא נגמר! 😅', 'גאה בך 🫡'];
+const KEEP = 300; // messages kept per group
+
+export async function isMember(code, playerId) {
+  const [r] = await sql`select 1 as ok from group_members where code = ${code} and player_id = ${playerId}`;
+  return !!r;
+}
+export async function addMessage(code, playerId, kind, body) {
+  const [m] = await sql`insert into group_messages (code, player_id, kind, body, created)
+    values (${code}, ${playerId}, ${kind}, ${body}, ${Date.now()}) returning id`;
+  await sql`delete from group_messages where code = ${code} and id <= (
+    select id from group_messages where code = ${code} order by id desc offset ${KEEP} limit 1)`;
+  return Number(m.id);
+}
+export async function recentSends(code, playerId, sinceMs) {
+  const [{ n }] = await sql`select count(*)::int as n from group_messages where code = ${code} and player_id = ${playerId} and created > ${Date.now() - sinceMs} and kind <> 'system'`;
+  return Number(n) || 0;
+}
+export async function listMessages(code, after) {
+  const rows = after
+    ? await sql`select m.id, m.player_id, m.kind, m.body, m.created, p.name from group_messages m left join players p on p.id = m.player_id
+        where m.code = ${code} and m.id > ${after} order by m.id limit 100`
+    : await sql`select * from (select m.id, m.player_id, m.kind, m.body, m.created, p.name from group_messages m left join players p on p.id = m.player_id
+        where m.code = ${code} order by m.id desc limit 60) t order by id`;
+  return rows.map(r => ({ id: Number(r.id), by: r.player_id, name: r.name || '', kind: r.kind, text: r.body, at: Number(r.created) }));
+}
+export async function deleteMessage(code, id) {
+  await sql`delete from group_messages where code = ${code} and id = ${id}`;
+}
+export async function messageAuthor(code, id) {
+  const [r] = await sql`select player_id from group_messages where code = ${code} and id = ${id}`;
+  return r ? (r.player_id || '') : null;
+}
+export async function lastMessageIds(codes) {
+  if (!codes.length) return {};
+  const rows = await sql`select code, max(id) as last from group_messages where code = any(${codes}) group by code`;
+  return Object.fromEntries(rows.map(r => [r.code, Number(r.last)]));
+}
+
+// After a player's XP goes up: in each of their groups, announce whom they passed and any new stage.
+export async function announceProgress(player, prevXp, prevStage) {
+  if (!player.name || player.xp <= prevXp) return;
+  const groups = await sql`select code from group_members where player_id = ${player.id}`;
+  for (const { code } of groups) {
+    const passed = await sql`select p.name from group_members m join players p on p.id = m.player_id
+      where m.code = ${code} and p.id <> ${player.id} and p.name <> '' and p.xp >= ${prevXp} and p.xp < ${player.xp}
+      order by p.xp desc limit 4`;
+    if (passed.length) {
+      const names = passed.slice(0, 3).map(r => r.name);
+      const list = names.length > 1 ? names.slice(0, -1).join(', ') + ' ו' + names[names.length - 1] : names[0];
+      await addMessage(code, null, 'system', `🏆 ${player.name} עקף/ה את ${list}${passed.length > 3 ? ' ועוד' : ''}!`);
+    }
+    if (player.stage > (prevStage || 1)) await addMessage(code, null, 'system', `⭐ ${player.name} הגיע/ה לשלב ${player.stage}`);
+  }
+}

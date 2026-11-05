@@ -5,7 +5,8 @@
 // Secrets never get stored in plain text: each device holds its own secret,
 // the server keeps only SHA-256 hashes.
 import { randomBytes } from 'node:crypto';
-import { sha, getPlayer, putPlayer, board, putCode, takeCode, groupInfo, groupBoard, myGroups, createGroup, joinGroup, leaveGroup, countMyGroups, GROUP_LIMITS } from './_lib/players.mjs';
+import { sha, getPlayer, putPlayer, board, putCode, takeCode, groupInfo, groupBoard, myGroups, createGroup, joinGroup, leaveGroup, countMyGroups, GROUP_LIMITS,
+  QUICK, isMember, addMessage, recentSends, listMessages, deleteMessage, messageAuthor, lastMessageIds, announceProgress } from './_lib/players.mjs';
 
 const MAX = { correct: 5000, rounds: 5000, stage: 1000, xp: 10_000_000 };
 const CODE_TTL = 15 * 60 * 1000;
@@ -93,7 +94,37 @@ export default async function handler(req, res) {
     }
 
     // ---- private groups (only for players already on the board) ----
-    if (action === 'gmine') return res.status(200).json({ groups: prev ? await myGroups(id) : [] });
+    if (action === 'gmine') {
+      const gs = prev ? await myGroups(id) : [];
+      const last = await lastMessageIds(gs.map(g => g.code));
+      return res.status(200).json({ groups: gs.map(g => ({ ...g, lastMsg: last[g.code] || 0 })), quick: QUICK });
+    }
+
+    // ---- group chat (members only) ----
+    if (action === 'msend' || action === 'mlist' || action === 'mdel') {
+      const gcode = String(b.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!prev || !prev.name || gcode.length !== 6 || !(await isMember(gcode, id))) return res.status(403).json({ error: 'not a member' });
+      if (action === 'mlist') {
+        const after = Number.isInteger(Number(b.after)) && Number(b.after) > 0 ? Number(b.after) : 0;
+        return res.status(200).json({ messages: await listMessages(gcode, after), quick: QUICK, owner: (await groupInfo(gcode)).owner === id });
+      }
+      if (action === 'mdel') {
+        const mid = Number(b.mid), author = await messageAuthor(gcode, mid);
+        if (author === null) return res.status(404).json({ error: 'not found' });
+        const g = await groupInfo(gcode);
+        if (author !== id && g.owner !== id) return res.status(403).json({ error: 'not yours' });
+        await deleteMessage(gcode, mid);
+        return res.status(200).json({ ok: true });
+      }
+      // msend: a ready-made reaction (index) or a short text; at most 6 per 30 seconds
+      if (await recentSends(gcode, id, 30000) >= 6) return res.status(429).json({ error: 'slow down' });
+      let kind = 'text', text;
+      if (b.quick != null && QUICK[Number(b.quick)] !== undefined) { kind = 'quick'; text = QUICK[Number(b.quick)]; }
+      else text = String(b.text || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+      if (!text) return res.status(400).json({ error: 'empty' });
+      const mid = await addMessage(gcode, id, kind, text);
+      return res.status(200).json({ id: mid });
+    }
     if (action === 'gcreate' || action === 'gjoin' || action === 'gleave') {
       if (!prev || !prev.name) return res.status(404).json({ error: 'join first' });
       if (action === 'gcreate') {
@@ -133,6 +164,7 @@ export default async function handler(req, res) {
       progress: cleanProgress(b.progress) || (prev && prev.progress) || null
     };
     await putPlayer(row);
+    if (prev) await announceProgress(row, prev.xp || 0, prev.stage || 1).catch(e => console.error('announce', e && e.message));
     return res.status(200).json({ players: await board() });
   } catch (e) {
     console.error('leaderboard error', e && e.message);

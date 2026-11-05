@@ -289,6 +289,24 @@ a.big[aria-disabled="true"]{opacity:.45;pointer-events:none}
 .bd-tab[aria-pressed="true"]{border-color:var(--sel);background:var(--sel-soft);color:var(--sel)}
 .bd-tab.add{border-style:dashed;color:var(--accent)}
 .modal .or{margin:4px 0 0;color:var(--muted);font-size:.92rem}
+/* group chat */
+.bd-tab.new::after,.chat-btn.new::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bad);margin-inline-start:6px;vertical-align:middle}
+.modal .box.chatbox{height:min(680px,calc(100dvh - 32px));padding:14px;gap:8px;text-align:right}
+.chat-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chat-head b{font:800 1.15rem var(--display)}
+.chat-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--bg);border-radius:14px}
+.chat-list .empty{margin:auto;color:var(--muted);text-align:center}
+.msg{unicode-bidi:plaintext;max-width:82%;align-self:flex-end;background:var(--surface);border:2px solid var(--line);border-radius:16px 16px 16px 4px;padding:6px 11px;position:relative;overflow-wrap:anywhere}
+.msg.mine{align-self:flex-start;background:var(--sel-soft);border-color:var(--sel);border-radius:16px 16px 4px 16px}
+.msg.quick{font-size:1.05rem}
+.msg small{display:block;color:var(--muted);font:600 .75rem var(--body)}
+.msg .del{position:absolute;top:2px;inset-inline-end:4px;background:none;border:0;color:var(--muted);font-size:.8rem;padding:2px 4px;opacity:.7}
+.msg.sys{align-self:center;max-width:95%;background:color-mix(in srgb,var(--gold) 22%,var(--surface));border:0;border-radius:12px;font-weight:700;font-size:.92rem;text-align:center}
+.chat-quick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.chat-quick::-webkit-scrollbar{display:none}
+.chat-quick button{flex:none;border:2px solid var(--line);border-bottom-width:3px;border-radius:999px;background:var(--surface);color:var(--fg);padding:5px 11px;font:600 .9rem var(--body)}
+.chat-send{display:flex;gap:8px}
+.chat-send .big{width:auto;padding:10px 16px}
 .rd .big{width:auto}
 #rdCode{text-align:center;letter-spacing:.3em;font:800 1.3rem var(--display);text-transform:uppercase;direction:ltr}
 .code{font:900 2.4rem var(--display);letter-spacing:.25em;direction:ltr;color:var(--accent);background:var(--accent-soft);border-radius:16px;padding:14px 8px;font-variant-numeric:tabular-nums;user-select:all}
@@ -737,7 +755,7 @@ function saveAcct(){store.set('bq-acct',ACCT);try{document.cookie=`bq_acct=${ACC
 saveAcct();
 async function api(method,body){const r=await fetch(API,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||r.status);e.status=r.status;throw e}return j}
 async function loadBoard(){try{BOARD=(await api('GET')).players;boardOk=true}catch(e){boardOk=false}
-  if(ME&&!groupsSynced){groupsSynced=true;syncGroups()}
+  if(ME)syncGroups(); // also brings the latest message id of each group, for the unread dot
   await loadGroup();drawBoard()}
 async function loadGroup(){
   if(BSEL==='all')return;
@@ -746,7 +764,7 @@ async function loadGroup(){
     const j=await r.json();if(j.players){GBOARD=j.players;GINFO=j.group}}catch(e){}}
 async function syncGroups(){
   if(!ME)return;
-  try{const r=await api('POST',{action:'gmine',id:ME.id,secret:ME.secret});GROUPS=r.groups||[];store.set('bq-groups',GROUPS);
+  try{const r=await api('POST',{action:'gmine',id:ME.id,secret:ME.secret});GROUPS=r.groups||[];store.set('bq-groups',GROUPS);if(r.quick)QUICK=r.quick;
     if(BSEL!=='all'&&!GROUPS.some(g=>g.code===BSEL)){BSEL='all';store.set('bq-bsel',BSEL)}drawBoard()}catch(e){}}
 function selBoard(code){BSEL=code;store.set('bq-bsel',code);GBOARD=null;GINFO=GROUPS.find(g=>g.code===code)||null;SFX.tap();drawBoard();loadGroup().then(drawBoard)}
 const GERR={'join first':'קודם צריך להצטרף לטבלה עם שם.','group not found':'לא מצאתי קבוצה עם הקוד הזה. בדקו אותו ונסו שוב.','too many groups':'אפשר להיות בעד 20 קבוצות.','group full':'הקבוצה מלאה.'};
@@ -754,6 +772,45 @@ async function doJoinGroup(code){
   code=String(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
   const r=await api('POST',{action:'gjoin',id:ME.id,secret:ME.secret,code});
   GROUPS=r.groups;store.set('bq-groups',GROUPS);selBoard(r.group.code);SFX.unlock();toast('הצטרפת לקבוצה "'+r.group.name+'"!');return r.group}
+// ---- group chat ----
+let QUICK=['אני אעקוף אותך 😤','וואו, איך הגעת לשם?! 🤯','כל הכבוד! 👏','🔥🔥🔥','מי בא לסבב? 💪','חכה חכה... 😏','זה לא נגמר! 😅','גאה בך 🫡'];
+const SEEN=store.get('bq-seen',{});
+const unread=g=>g&&g.lastMsg>(SEEN[g.code]||0);
+function markSeen(code,id){if(id>(SEEN[code]||0)){SEEN[code]=id;store.set('bq-seen',SEEN)}}
+const ago=t=>{const s=(Date.now()-t)/1000;return s<60?'עכשיו':s<3600?`לפני ${Math.floor(s/60)} דק׳`:s<86400?`לפני ${Math.floor(s/3600)} שע׳`:new Date(t).toLocaleDateString('he-IL')};
+function chatModal(g){
+  const m=modal(`<div class="chat-head"><b>💬 ${esc(g.name)}</b><button class="icon-btn" type="button" id="chX" aria-label="סגירה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="chat-list" id="chList" aria-live="polite"><p class="empty">טוען...</p></div>
+    <div class="chat-quick" id="chQuick">${QUICK.map((q,i)=>`<button type="button" data-q="${i}">${esc(q)}</button>`).join('')}</div>
+    <form class="chat-send" id="chForm"><input id="chText" maxlength="200" placeholder="כתוב הודעה לקבוצה..." autocomplete="off" enterkeyhint="send"><button class="big" type="submit">שליחה</button></form>
+    <p class="err" id="chErr" hidden></p>`);
+  m.querySelector('.box').classList.add('chatbox');
+  let msgs=[],last=0,owner=false,timer=0,busy=false;
+  const list=m.querySelector('#chList');
+  const draw=()=>{
+    const atEnd=list.scrollHeight-list.scrollTop-list.clientHeight<60;
+    if(!msgs.length){list.innerHTML='<p class="empty">עוד אין הודעות. תפתחו בעקיצה 😏</p>';return}
+    list.innerHTML=msgs.map(x=>x.kind==='system'?`<div class="msg sys">${esc(x.text)}<small>${ago(x.at)}</small></div>`
+      :`<div class="msg${x.by===ME.id?' mine':''}${x.kind==='quick'?' quick':''}"><small>${x.by===ME.id?'אתה':esc(x.name||'?')} · ${ago(x.at)}</small>${esc(x.text)}${x.by===ME.id||owner?`<button class="del" type="button" data-del="${x.id}" aria-label="מחיקה">✕</button>`:''}</div>`).join('');
+    if(atEnd||busy)list.scrollTop=list.scrollHeight;busy=false};
+  const pull=async first=>{
+    try{const r=await api('POST',{action:'mlist',id:ME.id,secret:ME.secret,code:g.code,after:first?0:last});
+      if(r.quick)QUICK=r.quick;owner=!!r.owner;
+      if(r.messages.length||first){msgs=first?r.messages:msgs.concat(r.messages);if(msgs.length>200)msgs=msgs.slice(-200);
+        last=msgs.length?msgs[msgs.length-1].id:last;markSeen(g.code,last);if(first)busy=true;draw()}}
+    catch(e){if(e.status===403){$('#chErr').hidden=false;$('#chErr').textContent='אתה כבר לא בקבוצה הזו.';clearInterval(timer)}}};
+  const send=async body=>{
+    try{await api('POST',{action:'msend',id:ME.id,secret:ME.secret,code:g.code,...body});$('#chErr').hidden=true;busy=true;await pull(false);SFX.select&&SFX.select()}
+    catch(e){$('#chErr').hidden=false;$('#chErr').textContent=e.message==='slow down'?'לאט לאט 🙂 אפשר לשלוח שוב עוד כמה שניות.':'ההודעה לא נשלחה. בדקו את החיבור.'}};
+  m.querySelector('#chQuick').onclick=e=>{const b=e.target.closest('[data-q]');if(b)send({quick:Number(b.dataset.q)})};
+  m.querySelector('#chForm').onsubmit=e=>{e.preventDefault();const t=$('#chText').value.trim();if(!t)return;$('#chText').value='';send({text:t})};
+  list.onclick=async e=>{const d=e.target.closest('[data-del]');if(!d)return;
+    if(d.dataset.sure!=='1'){d.dataset.sure='1';d.textContent='למחוק?';return}
+    try{await api('POST',{action:'mdel',id:ME.id,secret:ME.secret,code:g.code,mid:Number(d.dataset.del)});msgs=msgs.filter(x=>x.id!==Number(d.dataset.del));draw()}catch(err){}};
+  const close=()=>{clearInterval(timer);m.remove();drawBoard()};
+  m.querySelector('#chX').onclick=close;m.onclick=e=>{if(e.target===m)close()};
+  pull(true);timer=setInterval(()=>{if(!document.hidden)pull(false)},4000);
+}
 function groupModal(){
   const m=modal(`<h3>טבלה פרטית עם חברים</h3><p>פותחים קבוצה, שולחים לחברים קישור, ומתחרים רק ביניכם.</p>
     <form id="gcForm" class="rd"><input id="gcName" maxlength="24" placeholder="שם הקבוצה, למשל: מחלקה 3" required><button class="big" type="submit">יצירה</button></form>
@@ -844,17 +901,17 @@ function drawBoard(){
     return}
   const inG=BSEL!=='all',g=inG?(GINFO||GROUPS.find(x=>x.code===BSEL)||{code:BSEL,name:'קבוצה'}):null;
   const b=inG?(GBOARD||[]):(BOARD||[]),r=rankOf(b,ME.id),me=b[r];
-  const tabs=`<div class="bd-tabs" role="group" aria-label="איזו טבלה"><button class="bd-tab" data-b="all" aria-pressed="${!inG}">כולם</button>${GROUPS.map(x=>`<button class="bd-tab" data-b="${esc(x.code)}" aria-pressed="${x.code===BSEL}">${esc(x.name)}</button>`).join('')}<button class="bd-tab add" id="gNew">+ קבוצה עם חברים</button></div>`;
+  const tabs=`<div class="bd-tabs" role="group" aria-label="איזו טבלה"><button class="bd-tab" data-b="all" aria-pressed="${!inG}">כולם</button>${GROUPS.map(x=>`<button class="bd-tab${unread(x)&&x.code!==BSEL?' new':''}" data-b="${esc(x.code)}" aria-pressed="${x.code===BSEL}">${esc(x.name)}</button>`).join('')}<button class="bd-tab add" id="gNew">+ קבוצה עם חברים</button></div>`;
   let chase='';
   if(r>0){const ahead=b[r-1],gap=ahead.xp-(me?me.xp:0)+1;chase=`<p class="bd-chase">עוד <b>${gap} XP</b> כדי לעקוף את <b>${esc(ahead.name)}</b></p>`}
   else if(r===0&&b.length>1)chase=`<p class="bd-chase lead">אתה במקום הראשון! ${esc(b[1].name)} במרחק ${b[0].xp-b[1].xp} XP</p>`;
   const lonely=inG&&GBOARD&&b.length<2?'<p class="bd-note">בינתיים רק אתה כאן. הזמן חברים כדי להתחרות!</p>':'';
   el.innerHTML=`<div class="bd-head"><b>${inG?esc(g.name):'טבלת המובילים'}</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button></span></div>${tabs}${chase}${lonely}${inG&&!GBOARD?'<p class="bd-note">טוען...</p>':rows(b,inG?30:8)}
-    ${inG?`<div class="bd-sync"><button class="big" id="gInvite">הזמנת חברים</button><button class="link" id="gLeave">יציאה מהקבוצה</button></div>`
+    ${inG?`<div class="bd-sync"><button class="big chat-btn${unread(GROUPS.find(x=>x.code===BSEL))?' new':''}" id="gChat">💬 צ׳אט הקבוצה</button><button class="big ghost" id="gInvite">הזמנת חברים</button><button class="link" id="gLeave">יציאה מהקבוצה</button></div>`
       :`<div class="bd-sync"><button class="big ghost" id="linkDev">סנכרון מכשיר</button><button class="link" id="haveCode2">יש לי קוד ממכשיר אחר</button></div>`}`;
   el.querySelectorAll('.bd-tab[data-b]').forEach(t=>t.onclick=()=>{if(t.dataset.b!==BSEL)selBoard(t.dataset.b)});
   $('#gNew').onclick=groupModal;
-  if(inG){$('#gInvite').onclick=()=>inviteModal(g);
+  if(inG){$('#gInvite').onclick=()=>inviteModal(g);$('#gChat').onclick=()=>chatModal(g);
     $('#gLeave').onclick=async()=>{const x=$('#gLeave');if(x.dataset.sure!=='1'){x.dataset.sure='1';x.textContent='בטוח? לחיצה נוספת יוצאת';return}
       try{const rr=await api('POST',{action:'gleave',id:ME.id,secret:ME.secret,code:BSEL});GROUPS=rr.groups;store.set('bq-groups',GROUPS);selBoard('all');toast('יצאת מהקבוצה')}catch(e){toast('היציאה נכשלה, נסו שוב')}}}
   else{$('#linkDev').onclick=linkModal;$('#haveCode2').onclick=()=>codeModal()}

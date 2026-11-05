@@ -59,6 +59,15 @@ const SCHEMA = [
   `create table if not exists groups (code text primary key, name text not null, owner text not null, created bigint not null)`,
   `create table if not exists group_members (code text not null, player_id text not null, joined bigint not null, primary key (code, player_id))`,
   `create index if not exists group_members_player on group_members (player_id)`,
+  // group chat: kind 'text' (typed), 'quick' (a ready-made reaction), 'system' (overtakes, new stages)
+  `create table if not exists group_messages (
+     id bigserial primary key,
+     code text not null,
+     player_id text,
+     kind text not null,
+     body text not null,
+     created bigint not null)`,
+  `create index if not exists group_messages_code on group_messages (code, id)`,
   // raw webhook bodies, kept so a payment that didn't match anyone can be checked and assigned by hand
   `create table if not exists webhook_events (
      id bigserial primary key,

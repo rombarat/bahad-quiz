@@ -7,7 +7,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { sql } from './_lib/db.mjs';
 import { cookies } from './_lib/session.mjs';
 import { applyPayment } from './_lib/billing.mjs';
-import { sumitConfigured, listPayments, SumitError } from './_lib/sumit.mjs';
+import { sumitConfigured, listPayments, cancelAllRecurring, SumitError } from './_lib/sumit.mjs';
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const day = d => d ? new Date(d).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short' }) : '';
@@ -130,6 +130,19 @@ async function act(b, req) {
   }
   const [u] = await sql`select id from users where lower(email) = ${email}`;
   if (!u) return `אין משתמש עם ${email}`;
+  if (b.do === 'sumitcancel') {
+    const [sub] = await sql`select sumit_customer_id, sumit_recurring_id from subscriptions where user_id = ${u.id}`;
+    if (!sub || !sub.sumit_customer_id) return `אין ל־${email} מספר לקוח בסאמיט. צריך לבטל את הוראת הקבע ידנית בסאמיט ואז לסמן "ביטלתי בסאמיט".`;
+    try {
+      const n = await cancelAllRecurring(sub.sumit_customer_id, sub.sumit_recurring_id);
+      if (!n) return `לא נמצאה הוראת קבע פעילה ל־${email} בסאמיט. אם כבר בוטלה, סמנו "ביטלתי בסאמיט".`;
+      await sql`update subscriptions set status = 'canceled', updated_at = now() where user_id = ${u.id}`;
+      return `הוראת הקבע של ${email} בוטלה בסאמיט ✓`;
+    } catch (e) {
+      if (e instanceof SumitError) return `סאמיט החזירה שגיאה: ${e.message}`;
+      throw e;
+    }
+  }
   if (b.do === 'canceled') { await sql`update subscriptions set status = 'canceled', updated_at = now() where user_id = ${u.id}`; return `סומן כבוטל: ${email}`; }
   if (b.do === 'revoke') { await sql`update subscriptions set status = 'canceled', paid_until = now(), updated_at = now() where user_id = ${u.id}`; return `הגישה של ${email} נסגרה`; }
   return 'פעולה לא מוכרת';
@@ -177,7 +190,8 @@ ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
 <input type="email" name="email" placeholder="המייל שאיתו התחבר באפליקציה" required>
 <select name="do"><option value="grant">הוספת חודשים</option><option value="simulate">הדמיית תשלום (בלי חיוב)</option><option value="canceled">סימון: ביטלתי בסאמיט</option><option value="revoke">סגירת גישה עכשיו</option></select>
 <input type="number" name="months" value="1" min="1" max="12" style="width:70px"><button>ביצוע</button></form></div>
-<h2>בקשות ביטול (${requests.length})</h2><div class="box">${requests.length ? `<p class="muted">לבטל את הוראת הקבע של כל אחד מהם בסאמיט, ואז לסמן "ביטלתי בסאמיט".</p><table>${requests.map(s => row([esc(s.email), esc(s.name), `גישה עד ${day(s.paid_until)}`, `ביקש ב־${day(s.updated_at)}`])).join('')}</table>` : '<span class="muted">אין</span>'}</div>
+<h2>בקשות ביטול (${requests.length})</h2><div class="box">${requests.length ? `<p class="muted">הביטול האוטומטי בסאמיט לא הצליח עבורם. נסו "ביטול בסאמיט עכשיו", או בטלו ידנית בסאמיט וסמנו "ביטלתי בסאמיט".</p>${requests.map(s => `<div class="user"><div><b dir="ltr">${esc(s.email)}</b><div class="muted">${esc(s.name || '')} · גישה עד ${day(s.paid_until)} · ביקש ב־${day(s.updated_at)}</div></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">${['sumitcancel:ביטול בסאמיט עכשיו', 'canceled:ביטלתי בסאמיט'].map(x => { const [d, l] = x.split(':'); return `<form method="post"><input type="hidden" name="email" value="${esc(s.email)}"><input type="hidden" name="do" value="${d}"><button class="${d === 'canceled' ? 'ghost' : ''}">${l}</button></form>`; }).join('')}</div></div>`).join('')}` : '<span class="muted">אין</span>'}</div>
 <h2>תשלומים שלא שויכו למשתמש (${orphans.length})</h2><div class="box">${orphans.length ? `<p class="muted">המייל בתשלום לא תואם אף משתמש. כשהמשתמש יתחבר עם המייל הזה הגישה תיפתח לבד; אם שילם עם מייל אחר, הוסיפו לו חודש לפי המייל שלו באפליקציה.</p><table>${orphans.map(o => row([esc(o.email || '(בלי מייל)'), esc(o.amount), day(o.paid_at), esc(o.kind)])).join('')}</table>` : '<span class="muted">אין</span>'}</div>
 <h2>מנויים (${subs.length})</h2><div class="box">${subs.length ? `<table><tr><th>מייל</th><th>שם</th><th>מצב</th><th>גישה עד</th></tr>${subs.map(s => row([esc(s.email), esc(s.name), status(s.status), day(s.paid_until)])).join('')}</table>` : '<span class="muted">עוד אין</span>'}</div>
 <h2>כל מי שהתחבר עם Google (${userCount})</h2><div class="box"><p class="muted">"הדמיית תשלום" שולחת לשרת את אותו עדכון שסאמיט שולחת אחרי תשלום, בלי חיוב, ופותחת למשתמש מנוי לחודש. לניקוי אחרי בדיקה: "סגירת גישה".</p>${users.length ? users.map(u => { const on = u.paid_until && new Date(u.paid_until) > new Date();

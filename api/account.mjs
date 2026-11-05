@@ -8,7 +8,7 @@ import { sql } from './_lib/db.mjs';
 import { setSessionCookie } from './_lib/session.mjs';
 import { accessFor } from './_lib/access.mjs';
 import { claimPayments, confirmReturn } from './_lib/billing.mjs';
-import { cancelMonthly, SumitError } from './_lib/sumit.mjs';
+import { cancelAllRecurring, sumitConfigured, SumitError } from './_lib/sumit.mjs';
 import { notify, adminLink } from './_lib/notify.mjs';
 
 const body = req => typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
@@ -56,13 +56,14 @@ export default async function handler(req, res) {
 
     if (b.action === 'cancel') {
       if (!a.sub || a.sub.status !== 'active') return res.status(400).json({ error: 'no active subscription' });
-      // With the API key and the standing-order id, cancel at SUMIT right away.
-      // Otherwise record the request; the owner sees it in /api/admin and cancels the standing order in SUMIT.
+      // With the API key and the SUMIT customer (saved from their receipt), stop the standing order right away.
+      // If that isn't possible, record the request; the owner gets an email and sees it in /admin.
       let status = 'cancel_requested';
-      if (process.env.SUMIT_API_KEY && a.sub.sumit_customer_id && a.sub.sumit_recurring_id) {
+      if (sumitConfigured() && a.sub.sumit_customer_id) {
         try {
-          await cancelMonthly({ customerId: Number(a.sub.sumit_customer_id), recurringId: Number(a.sub.sumit_recurring_id) });
-          status = 'canceled';
+          const n = await cancelAllRecurring(a.sub.sumit_customer_id, a.sub.sumit_recurring_id);
+          if (n > 0) status = 'canceled';
+          else console.error('cancel: no active standing order found for customer', a.sub.sumit_customer_id);
         } catch (e) {
           if (!(e instanceof SumitError)) throw e;
           console.error('cancel at SUMIT failed, recorded as a request', e.message);

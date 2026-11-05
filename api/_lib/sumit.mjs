@@ -80,3 +80,19 @@ export async function getDocument(documentId) {
   const d = await call('/accounting/documents/getdetails/', { DocumentID: Number(documentId) });
   return d.Document || d || null;
 }
+
+// The customer's active standing orders (הוראות קבע). Returns [{ id, raw }].
+export async function listRecurring(customerId) {
+  const d = await call('/billing/recurring/listforcustomer/', { Customer: { ID: Number(customerId) }, IncludeInactive: false });
+  const items = Array.isArray(d.RecurringItems) ? d.RecurringItems : Array.isArray(d.Items) ? d.Items : Array.isArray(d) ? d : [];
+  return items.map(r => ({ id: Number(r.ID ?? r.RecurringCustomerItemID ?? r.CustomerItemID), raw: r }))
+    .filter(r => r.id && r.raw.IsActive !== false && !/cancel|בוטל|inactive/i.test(String(r.raw.Status ?? '')));
+}
+
+// Stops the monthly charge at SUMIT: the known standing order, or every active one this customer has
+// (this business sells only the subscription). Returns how many were cancelled; throws SumitError on failure.
+export async function cancelAllRecurring(customerId, knownRecurringId) {
+  const ids = knownRecurringId ? [Number(knownRecurringId)] : (await listRecurring(customerId)).map(r => r.id);
+  for (const id of ids) await cancelMonthly({ customerId: Number(customerId), recurringId: id });
+  return ids.length;
+}

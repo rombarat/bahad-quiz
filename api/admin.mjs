@@ -94,7 +94,8 @@ export default async function handler(req, res) {
     res.statusCode = 303; res.setHeader('Location', req.url.split('?')[0]); return res.end();
   }
   if (b.do === 'logout') { setCookie(res, ''); return send(res, 200, loginPage('')); }
-  if (!signedIn(req)) return send(res, 401, loginPage(''));
+  // the login form itself is a normal page (200); an action posted without a login is refused (401)
+  if (!signedIn(req)) return send(res, req.method === 'GET' ? 200 : 401, loginPage(''));
   try {
     let msg = '';
     if (req.method === 'POST') msg = await act(b);

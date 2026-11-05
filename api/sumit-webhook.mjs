@@ -64,6 +64,12 @@ export function extract(body) {
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  // one line per call (no values), so a trigger that 'was sent' can be traced in the Vercel logs
+  const shape = b => { try { const o = parseBody({ body: b }); return Object.keys(o).slice(0, 20).join(','); } catch { return '?'; } };
+  console.log('sumit-webhook', JSON.stringify({ method: req.method, type: String(req.headers['content-type'] || ''),
+    key: req.query && req.query.key ? (keyOk(req.query.key) ? 'ok' : 'wrong') : 'missing',
+    bytes: typeof req.body === 'string' ? req.body.length : JSON.stringify(req.body || {}).length, fields: shape(req.body),
+    agent: String(req.headers['user-agent'] || '').slice(0, 60) }));
   if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ error: 'method not allowed' }); }
   if (!keyOk(req.query && req.query.key)) return res.status(401).json({ error: 'unauthorized' });
   try {

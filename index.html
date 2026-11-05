@@ -954,6 +954,10 @@ document.addEventListener('keydown',e=>{
 /* ---------- ACCESS: 100 free questions, the rest for friends and subscribers ---------- */
 // The server decides who gets the rest (/api/questions). They are cached for offline use and dropped if access ends.
 const QCACHE='bq-qs';
+// /?paywall-test=1 turns the paywall on in this browser only, to try sign-in and payment before launch; =0 turns it off
+(()=>{const t=new URLSearchParams(location.search).get('paywall-test');if(t===null)return;
+  document.cookie=`bq_pwtest=${t==='1'?'1':''}; path=/; max-age=${t==='1'?2592000:0}; samesite=lax${location.protocol==='https:'?'; secure':''}`;
+  history.replaceState(null,'',location.pathname);if(t!=='1'){try{localStorage.removeItem('bq-cfg')}catch(e){}}})();
 let CFG=store.get('bq-cfg',null), ACCESS=store.get('bq-access',null), USER=null, SIGNED=false;
 const locked=()=>!!(CFG&&CFG.paywall)&&!(ACCESS&&ACCESS.full);
 const priceTxt=()=>'₪'+Number(CFG&&CFG.price||19.9).toFixed(2);

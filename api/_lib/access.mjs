@@ -5,7 +5,7 @@
 import { createHash } from 'node:crypto';
 import { head } from '@vercel/blob';
 import { sql, hasDb } from './db.mjs';
-import { sessionOf } from './session.mjs';
+import { sessionOf, cookies } from './session.mjs';
 
 // Players on the leaderboard when the paywall was built. Their ids are public on the board;
 // using one still requires the device secret, which only the player's own devices hold.
@@ -15,7 +15,9 @@ const FRIENDS_AT_LAUNCH = [
   'pndqghkkdomslgpu'
 ];
 const list = v => String(v || '').split(/[\s,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
-export const paywallOn = () => process.env.PAYWALL === 'on';
+// On for everyone with PAYWALL=on. Before that, one browser can try the whole flow by opening /?paywall-test=1
+// (sets the bq_pwtest cookie; /?paywall-test=0 clears it). It only ever locks that browser, so it needs no protection.
+export const paywallOn = req => process.env.PAYWALL === 'on' || (!!req && cookies(req).bq_pwtest === '1');
 const friendPlayer = id => FRIENDS_AT_LAUNCH.includes(id) || list(process.env.FRIEND_PLAYER_IDS).includes(id);
 const friendEmail = email => !!email && list(process.env.FRIEND_EMAILS).includes(email.toLowerCase());
 const sha = s => createHash('sha256').update(String(s)).digest('hex');
@@ -41,8 +43,9 @@ async function devicePlayer(req) {
 export async function accessFor(req) {
   const sess = sessionOf(req);
   let user = null, sub = null, viaSession = false;
-  const playerId = paywallOn() || sess ? await devicePlayer(req) : null;
-  if (hasDb() && (sess || (paywallOn() && playerId))) {
+  const pw = paywallOn(req);
+  const playerId = pw || sess ? await devicePlayer(req) : null;
+  if (hasDb() && (sess || (pw && playerId))) {
     if (sess) [user] = await sql`select id, email, name, player_id from users where id = ${sess.uid}`;
     viaSession = !!user;
     // no sign-in on this device (e.g. the installed iPhone app, or a phone synced with a code):
@@ -59,7 +62,7 @@ export async function accessFor(req) {
   }
   const paidUntil = sub && sub.paid_until ? new Date(sub.paid_until) : null;
   let reason = 'none';
-  if (!paywallOn()) reason = 'open';
+  if (!pw) reason = 'open';
   else if ((playerId && friendPlayer(playerId)) || (user && (friendPlayer(user.player_id) || friendEmail(user.email)))) reason = 'friend';
   else if (sub && paidUntil && paidUntil > new Date() && sub.status !== 'failed') reason = 'subscription';
   return {

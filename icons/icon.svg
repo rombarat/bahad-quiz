@@ -1,6 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#58702a"/>
-  <path d="M256 92 380 136v104c0 86-54 146-124 178-70-32-124-92-124-178V136z" fill="#fff"/>
-  <path d="M256 92 380 136v104c0 86-54 146-124 178z" fill="#eaf0d8"/>
-  <path d="m196 258 42 42 82-90" fill="none" stroke="#3f5219" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- השביל לבה״ד: a winding path up the hills to a flag -->
+  <defs><clipPath id="r"><rect width="512" height="512" rx="112"/></clipPath></defs>
+  <g clip-path="url(#r)">
+    <rect width="512" height="512" fill="#58702a"/>
+    <path d="M0 330C90 292 160 318 236 290C318 260 404 286 512 236V512H0Z" fill="#4a5f22"/>
+    <path d="M0 410C110 372 190 404 290 372C380 344 440 360 512 340V512H0Z" fill="#3f5219"/>
+    <path d="M168 520C168 446 344 446 336 380C328 318 196 326 206 262C214 212 296 214 300 168" fill="none" stroke="#f6f5ef" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M168 520C168 446 344 446 336 380C328 318 196 326 206 262C214 212 296 214 300 168" fill="none" stroke="#f5c33b" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 22"/>
+    <path d="M300 172V66" stroke="#f6f5ef" stroke-width="14" stroke-linecap="round"/>
+    <path d="M307 70L388 96L307 124Z" fill="#f5c33b"/>
+  </g>
 </svg>

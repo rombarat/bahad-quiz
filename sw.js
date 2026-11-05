@@ -4,7 +4,7 @@
 // - Icons and the manifest are precached; Google Fonts are cached the first time they load.
 // - The leaderboard API (/api/) is never cached: it always goes to the network.
 // Bump VERSION when the list of precached files changes.
-const VERSION = 'v1';
+const VERSION = 'v2'; // v2: new name and icon (השביל לבה״ד)
 const APP = 'bahad-app-' + VERSION;
 const FONTS = 'bahad-fonts';
 const PRECACHE = [

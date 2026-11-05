@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>בוחן בה״ד 1</title>
+<title>השביל לבה״ד</title>
 <meta name="description" content="תרגול שאלות לקראת בה״ד 1: סבבים קצרים, בחינה חוזרת והסבר אחרי כל תשובה.">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#58702a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="בוחן בה״ד">
+<meta name="apple-mobile-web-app-title" content="השביל לבה״ד">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
@@ -323,7 +323,7 @@ body{margin:0}
   <section id="home" class="screen">
     <div class="inner home-head">
       <div class="brand">
-        <h1>בוחן בה״ד 1</h1>
+        <h1>השביל לבה״ד</h1>
         <p>סבבים קצרים · בחינה חוזרת כל 5 סבבים · הסבר אחרי כל תשובה</p>
       </div>
       <div class="head-tools">
@@ -827,13 +827,13 @@ function groupModal(){
     try{await doJoinGroup($('#gjCode').value);m.remove()}catch(err){fail(err);b.disabled=false}};
 }
 function inviteModal(g,fresh){
-  const url=location.origin+'/?join='+g.code,txt=`בואו להתחרות איתי בבוחן בה״ד 1! הצטרפו לקבוצה "${g.name}":`;
+  const url=location.origin+'/?join='+g.code,txt=`בואו להתחרות איתי בהשביל לבה״ד! הצטרפו לקבוצה "${g.name}":`;
   const m=modal(`<h3>${fresh?'הקבוצה נפתחה!':'הזמנת חברים'}</h3><p>שלחו לחברים את הקישור. מי שנכנס דרכו מצטרף לקבוצה "${esc(g.name)}". אפשר גם להקליד את הקוד:</p>
     <div class="code">${esc(g.code)}</div>
     <button class="big" type="button" id="ivShare">${navigator.share?'שליחה לחברים':'העתקת הקישור'}</button><button class="big ghost" type="button" id="ivClose">סגירה</button>`);
   $('#ivClose').onclick=()=>m.remove();
   $('#ivShare').onclick=async()=>{const c=$('#ivShare');
-    if(navigator.share){try{await navigator.share({title:'בוחן בה״ד 1',text:txt,url});return}catch(e){if(e&&e.name==='AbortError')return}}
+    if(navigator.share){try{await navigator.share({title:'השביל לבה״ד',text:txt,url});return}catch(e){if(e&&e.name==='AbortError')return}}
     try{await navigator.clipboard.writeText(txt+' '+url);c.textContent='הקישור הועתק';SFX.select()}catch(e){c.textContent=url}};
 }
 async function syncMe(){if(!ME)return null;try{BOARD=(await api('POST',{action:'save',...ME,...myStats(),progress:myProgress()})).players;boardOk=true}catch(e){boardOk=false}await loadGroup();drawBoard();return BOARD}

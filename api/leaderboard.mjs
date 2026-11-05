@@ -1,4 +1,4 @@
-// Leaderboard + cross-device sync for the Bahad 1 quiz.
+// Leaderboard + cross-device sync for the השביל לבה״ד quiz app.
 // Storage: Neon Postgres (api/_lib/players.mjs). It was Vercel Blob until that store hit its free-plan limit.
 //   players     one row per player (stats, progress, hashes of device secrets)
 //   pair_codes  short-lived pairing codes for linking another device

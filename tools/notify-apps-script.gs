@@ -14,12 +14,12 @@ const TO = 'rombarat3336@gmail.com';
 
 function doPost(e) {
   const d = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-  const subject = String(d.subject || 'בוחן בה״ד 1').slice(0, 200);
-  MailApp.sendEmail({ to: TO, subject: subject, body: String(d.text || ''), htmlBody: String(d.html || d.text || ''), name: 'בוחן בה״ד 1' });
+  const subject = String(d.subject || 'השביל לבה״ד').slice(0, 200);
+  MailApp.sendEmail({ to: TO, subject: subject, body: String(d.text || ''), htmlBody: String(d.html || d.text || ''), name: 'השביל לבה״ד' });
   return ContentService.createTextOutput('ok');
 }
 
 // Run this once from the editor (select testMail → Run) to check that mail arrives.
 function testMail() {
-  MailApp.sendEmail(TO, 'בדיקה: התראות בוחן בה״ד 1', 'אם המייל הזה הגיע, ההתראות מוגדרות נכון.');
+  MailApp.sendEmail(TO, 'בדיקה: התראות השביל לבה״ד', 'אם המייל הזה הגיע, ההתראות מוגדרות נכון.');
 }

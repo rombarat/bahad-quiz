@@ -47,7 +47,7 @@ pre{white-space:pre-wrap;word-break:break-all;font-size:12px;margin:4px 0 0;dire
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.top form button{background:none;color:var(--muted);text-decoration:underline;padding:0}`;
 const page = (title, inner) => `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>${title}</title><style>${STYLE}</style></head><body><main>${inner}</main></body></html>`;
-const loginPage = err => page('כניסה לניהול', `<div class="login"><h1>ניהול מנויים</h1><p class="muted">בוחן בה״ד 1</p>
+const loginPage = err => page('כניסה לניהול', `<div class="login"><h1>ניהול מנויים</h1><p class="muted">השביל לבה״ד</p>
 ${err ? `<div class="msg err">${esc(err)}</div>` : ''}
 <div class="box"><form method="post"><input type="hidden" name="do" value="login">
 <label>שם משתמש<br><input name="user" autocomplete="username" required autofocus></label>

@@ -61,3 +61,37 @@ export async function claimPayments(userId, email) {
   for (const r of rows) await grant(userId, r.paid_at, r.sumit_customer_id);
   return rows.length;
 }
+
+// The buyer is back from SUMIT's payment page with ?OG-PaymentID=... while signed in: ask SUMIT about that payment
+// and, if it is real, recent, for the right amount and not someone else's, open access right away.
+// Returns 'ok' | 'no-api' | 'not-found' | 'invalid' | 'old' | 'amount' | 'taken' | 'error'.
+export async function confirmReturn(userId, paymentId) {
+  const { sumitConfigured, getPayment, PRICE, SumitError } = await import('./sumit.mjs');
+  if (!sumitConfigured()) return 'no-api';
+  if (!/^\d{1,15}$/.test(String(paymentId || ''))) return 'not-found';
+  const ref = `sumit-pay-${Number(paymentId)}`;
+  const [have] = await sql`select user_id from payments where ref = ${ref}`;
+  if (have && have.user_id && Number(have.user_id) !== userId) return 'taken';
+  if (have && Number(have.user_id) === userId) return 'ok';
+  let p;
+  try { p = await getPayment(paymentId); } catch (e) {
+    if (e instanceof SumitError) { console.error('confirmReturn', e.message); return 'error'; }
+    throw e;
+  }
+  if (!p) return 'not-found';
+  if (!p.valid) return 'invalid';
+  if (p.date && Date.now() - new Date(p.date).getTime() > 3 * 864e5) return 'old';
+  if (p.amount != null && p.amount < PRICE() - 0.01) return 'amount';
+  // a standing-order customer already tied to another user can't be claimed by guessing their payment id
+  if (p.customerId) {
+    const [other] = await sql`select user_id from subscriptions where sumit_customer_id = ${p.customerId} and user_id <> ${userId} limit 1`;
+    if (other) return 'taken';
+  }
+  if (have) { // already listed by the daily check, with no user yet
+    await sql`update payments set user_id = ${userId} where ref = ${ref} and user_id is null`;
+    await grant(userId, p.date || new Date(), p.customerId);
+  } else {
+    await applyPayment({ ref, userId, customerId: p.customerId, amount: p.amount, paidAt: p.date || new Date(), kind: 'return', email: p.email });
+  }
+  return 'ok';
+}

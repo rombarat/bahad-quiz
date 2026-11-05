@@ -8,7 +8,10 @@ export class SumitError extends Error {
   constructor(message, details) { super(message); this.details = details; }
 }
 
-async function call(path, body) {
+export const sumitConfigured = () => !!(process.env.SUMIT_API_KEY && process.env.SUMIT_COMPANY_ID);
+
+// Paths are /billing/...; some SUMIT docs write /api/billing/..., so a 404 is retried with that prefix.
+async function call(path, body, retried) {
   const r = await fetch(`${BASE()}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Content-Language': 'he' },
@@ -18,6 +21,7 @@ async function call(path, body) {
     }),
     cache: 'no-store'
   });
+  if (r.status === 404 && !retried && !path.startsWith('/api/')) return call(`/api${path}`, body, true);
   const j = await r.json().catch(() => null);
   if (!r.ok || !j) throw new SumitError(`SUMIT HTTP ${r.status}`, j);
   if (j.Status !== 0 && j.Status !== '0' && j.Status !== 'Success') {
@@ -43,4 +47,23 @@ export async function listPayments(from, to) {
     start += rows.length;
   }
   return out;
+}
+
+// One payment by its id, e.g. the OG-PaymentID SUMIT appends to the payment page's return address.
+// Returns { id, customerId, valid, amount, date, email } or null if SUMIT has no such payment.
+export async function getPayment(paymentId) {
+  const d = await call('/billing/payments/get/', { PaymentID: Number(paymentId) });
+  const p = d.Payment || d;
+  if (!p || p.ID == null) return null;
+  const status = p.Status == null ? null : String(p.Status);
+  const valid = p.ValidPayment !== false && (status === null || status === '000' || status === '0');
+  const c = p.Customer || {};
+  return {
+    id: Number(p.ID),
+    customerId: Number(p.CustomerID || c.ID) || null,
+    valid,
+    amount: p.Amount == null ? null : Number(p.Amount),
+    date: p.Date || p.PaymentDate || null,
+    email: c.EmailAddress || p.EmailAddress || null
+  };
 }

@@ -7,7 +7,7 @@
 import { sql } from './_lib/db.mjs';
 import { setSessionCookie } from './_lib/session.mjs';
 import { accessFor } from './_lib/access.mjs';
-import { claimPayments } from './_lib/billing.mjs';
+import { claimPayments, confirmReturn } from './_lib/billing.mjs';
 import { cancelMonthly, SumitError } from './_lib/sumit.mjs';
 import { notify, adminLink } from './_lib/notify.mjs';
 
@@ -39,6 +39,14 @@ export default async function handler(req, res) {
       const pre = await accessFor(req);
       const body = JSON.stringify({ source: 'return-from-payment-page', user: pre.user ? pre.user.email : null, params: b.ret }).slice(0, 4000);
       await sql`insert into webhook_events (body) values (${body})`;
+      // the payment id SUMIT put in the return address → verify it with SUMIT and open access now
+      const pid = b.ret['OG-PaymentID'] || b.ret['og-paymentid'];
+      if (pid && pre.viaSession && !pre.access.full) {
+        const result = await confirmReturn(pre.userId, String(pid));
+        if (result !== 'ok') console.error('return payment not confirmed', result);
+        const after = await current(req);
+        return res.status(200).json({ user: after.user, signedIn: true, access: after.access, confirm: result });
+      }
     }
 
     const a = await current(req);

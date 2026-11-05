@@ -1040,6 +1040,8 @@ async function checkPaid(loud,ret){
     if(r&&r.ok&&r.j.access&&r.j.access.full){checking=false;store.set('bq-paying',0);ACCESS=r.j.access;store.set('bq-access',ACCESS);
       toast('המנוי הופעל! כל השאלות פתוחות');burst(innerWidth/2,200,90,10);await refreshAccess();return true}
     if(r&&r.status===401)break;
+    if(r&&r.j&&['invalid','old','amount','taken','not-found'].includes(r.j.confirm)){checking=false;
+      toast(r.j.confirm==='invalid'?'סאמיט לא אישרה את התשלום. אם חויבת, פנו אלינו':'לא הצלחנו לאמת את התשלום. אם חויבת, פנו אלינו');drawAccess();return false}
     await new Promise(ok=>setTimeout(ok,i<3?2500:5000));
   }
   checking=false;

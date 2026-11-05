@@ -150,8 +150,18 @@ export default async function handler(req, res) {
   // the login form itself is a normal page (200); an action posted without a login is refused (401)
   if (!signedIn(req)) return send(res, req.method === 'GET' ? 200 : 401, loginPage(''));
   try {
+    // Post/Redirect/Get: do the action, then send the browser back to a plain GET of /admin with the result
+    // in a short-lived cookie, so refreshing or going back never repeats an action (e.g. adding months twice).
+    if (req.method === 'POST') {
+      const done = await act(b, req);
+      const parts = [`bq_admin_msg=${encodeURIComponent(String(done || '')).slice(0, 1500)}`, 'Path=/', 'HttpOnly', 'SameSite=Strict', 'Max-Age=60'];
+      if (process.env.VERCEL) parts.push('Secure');
+      res.setHeader('Set-Cookie', parts.join('; '));
+      res.statusCode = 303; res.setHeader('Location', req.url.split('?')[0]); return res.end();
+    }
     let msg = '';
-    if (req.method === 'POST') msg = await act(b, req);
+    const flash = cookies(req).bq_admin_msg;
+    if (flash) { msg = flash; res.setHeader('Set-Cookie', `bq_admin_msg=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${process.env.VERCEL ? '; Secure' : ''}`); }
     const subs = await sql`select u.email, u.name, s.status, s.paid_until, s.updated_at from subscriptions s join users u on u.id = s.user_id order by (s.status = 'cancel_requested') desc, s.paid_until desc limit 300`;
     const users = await sql`select u.email, u.name, u.created_at, s.status, s.paid_until from users u left join subscriptions s on s.user_id = u.id order by u.created_at desc limit 200`;
     const [{ n: userCount }] = await sql`select count(*)::int as n from users`;

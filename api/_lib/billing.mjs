@@ -47,7 +47,16 @@ export async function applyPayment({ ref, email, customerId, amount, paidAt, kin
     insert into payments (ref, user_id, email, sumit_customer_id, amount, paid_at, kind)
     values (${ref}, ${uid}, ${mail}, ${customerId || null}, ${amount == null ? null : amount}, ${at.toISOString()}, ${kind})
     on conflict (ref) do nothing returning ref`;
-  if (uid && ins.length) await grant(uid, at, customerId); // a payment already recorded was already applied
+  if (uid && ins.length) await grant(uid, at, customerId);
+  else if (uid) {
+    // already recorded: if it was waiting without a user (the payer signed in later), it's theirs now.
+    // grant() is idempotent per payment date, so this never adds a second month for the same payment.
+    const [have] = await sql`select user_id, paid_at from payments where ref = ${ref}`;
+    if (have && (have.user_id == null || Number(have.user_id) === uid)) {
+      if (have.user_id == null) await sql`update payments set user_id = ${uid} where ref = ${ref} and user_id is null`;
+      await grant(uid, have.paid_at || at, customerId);
+    } else if (have) return { isNew: false, userId: null }; // someone else's payment
+  }
   return { isNew: ins.length > 0, userId: uid };
 }
 

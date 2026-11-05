@@ -46,6 +46,8 @@ export default async function handler(req, res) {
       const gcode = String((req.query && req.query.group) || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       if (gcode) {
         const g = gcode.length === 6 ? await groupInfo(gcode) : null;
+        // groups are small and change when someone joins: always fresh, no CDN copy
+        res.setHeader('Cache-Control', 'no-store');
         if (!g) return res.status(404).json({ error: 'group not found' });
         return res.status(200).json({ group: { code: g.code, name: g.name, count: g.count }, players: await groupBoard(gcode) });
       }

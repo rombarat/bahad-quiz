@@ -283,6 +283,10 @@ a.big[aria-disabled="true"]{opacity:.45;pointer-events:none}
 .bd-sync{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:2px solid var(--line);padding-top:12px}
 .bd-sync .big{width:auto;padding:10px 18px;font-size:.98rem}
 .rd{display:flex;gap:8px}
+.bd-refresh{width:30px;height:30px;padding:4px;color:var(--muted)}
+.bd-refresh svg{width:100%;height:100%}
+.bd-refresh.spin svg{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .bd-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px;margin:-2px}
 .bd-tabs::-webkit-scrollbar{display:none}
 .bd-tab{flex:none;border:2px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 13px;font:700 .9rem var(--display);white-space:nowrap;max-width:60vw;overflow:hidden;text-overflow:ellipsis}
@@ -645,7 +649,23 @@ function drawHome(){
     return `<button class="topic${d===n?' full':''}" id="t${i}" data-c="${c}" style="--c:${COLORS[c]||'#58702a'}"><span class="medal">${c[0]}</span><b>${c}</b><small>${d}/${n}</small><span class="tbar"><i style="width:${d/n*100}%"></i></span></button>`}).join('');
   drawPath();drawAccess();
 }
-$('#topics').onclick=e=>{const b=e.target.closest('.topic');if(b)launch(b.dataset.c)};
+$('#topics').onclick=e=>{const b=e.target.closest('.topic');if(b)topicMenu(b.dataset.c)};
+// tapping a topic: a short round, or every question of the topic that's open to you
+function topicMenu(c){
+  const p=pool(c),n=p.length,all=Math.max(CAT_N[c]||0,D.filter(x=>x[0]===c).length),lockedPart=locked()&&n<all;
+  if(!n){launch(c);return}
+  SFX.tap();
+  const m=modal(`<h3>${esc(c)}</h3>
+    ${n>LEN?`<button class="big" type="button" id="tmShort">סבב קצר · ${LEN} שאלות</button>`:''}
+    <button class="big${n>LEN?' ghost':''}" type="button" id="tmAll">כל הנושא · ${n} שאלות</button>
+    <p class="bd-note">${ONLY?'רק שאלות שעוד לא ענית עליהן נכון. ':''}${lockedPart?`כולל רק השאלות הפתוחות לך. מנוי פותח את כל ${all} השאלות בנושא.`:'אפשר לעצור באמצע. מה שענית נשמר.'}</p>
+    ${lockedPart?'<button class="link" type="button" id="tmSub">לכל השאלות</button>':''}
+    <button class="big ghost" type="button" id="tmX">ביטול</button>`);
+  $('#tmX').onclick=()=>m.remove();
+  if($('#tmShort'))$('#tmShort').onclick=()=>{m.remove();launch(c)};
+  $('#tmAll').onclick=()=>{m.remove();startLesson(shuffle(p),c)};
+  if($('#tmSub'))$('#tmSub').onclick=()=>{m.remove();openPaywall()};
+}
 $('#onlyNew').onclick=()=>{ONLY=!ONLY;store.set('bq-only',ONLY);SFX.tap();drawHome()};
 let TAB=store.get('bq-tab','path')==='topics'?'topics':'path';
 function drawTab(){$('#tabPath').setAttribute('aria-selected',TAB==='path');$('#tabTopics').setAttribute('aria-selected',TAB==='topics');$('#panePath').hidden=TAB!=='path';$('#paneTopics').hidden=TAB!=='topics'}
@@ -757,6 +777,12 @@ async function api(method,body){const r=await fetch(API,{method,headers:body?{'C
 async function loadBoard(){try{BOARD=(await api('GET')).players;boardOk=true}catch(e){boardOk=false}
   if(ME)syncGroups(); // also brings the latest message id of each group, for the unread dot
   await loadGroup();drawBoard()}
+// refresh button: save my latest score, then fetch the board straight from the server (skipping the 10 s CDN copy)
+async function refreshBoard(){
+  const btn=$('#bdRefresh');if(btn)btn.classList.add('spin');SFX.tap();
+  if(ME)try{await api('POST',{action:'save',...ME,...myStats(),progress:myProgress()})}catch(e){}
+  try{const r=await fetch(API+'?fresh='+Date.now(),{cache:'no-store'});if(r.ok){BOARD=(await r.json()).players;boardOk=true}}catch(e){}
+  if(ME)await syncGroups();await loadGroup();drawBoard();toast('הטבלה עודכנה')}
 async function loadGroup(){
   if(BSEL==='all')return;
   try{const r=await fetch(API+'?group='+BSEL,{cache:'no-store'});
@@ -770,8 +796,14 @@ function selBoard(code){BSEL=code;store.set('bq-bsel',code);GBOARD=null;GINFO=GR
 const GERR={'join first':'קודם צריך להצטרף לטבלה עם שם.','group not found':'לא מצאתי קבוצה עם הקוד הזה. בדקו אותו ונסו שוב.','too many groups':'אפשר להיות בעד 20 קבוצות.','group full':'הקבוצה מלאה.'};
 async function doJoinGroup(code){
   code=String(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  const r=await api('POST',{action:'gjoin',id:ME.id,secret:ME.secret,code});
+  const go=()=>api('POST',{action:'gjoin',id:ME.id,secret:ME.secret,code});
+  let r;
+  try{r=await go()}catch(e){
+    // a player who hasn't synced since the leaderboard moved isn't on the server yet: save, then try again
+    if(e.message!=='join first')throw e;await syncMe();r=await go()}
+  store.set('bq-pjoin',null);
   GROUPS=r.groups;store.set('bq-groups',GROUPS);selBoard(r.group.code);SFX.unlock();toast('הצטרפת לקבוצה "'+r.group.name+'"!');return r.group}
+
 // ---- group chat ----
 let QUICK=['אני אעקוף אותך 😤','וואו, איך הגעת לשם?! 🤯','כל הכבוד! 👏','🔥🔥🔥','מי בא לסבב? 💪','חכה חכה... 😏','זה לא נגמר! 😅','גאה בך 🫡'];
 const SEEN=store.get('bq-seen',{});
@@ -827,8 +859,8 @@ function groupModal(){
     try{await doJoinGroup($('#gjCode').value);m.remove()}catch(err){fail(err);b.disabled=false}};
 }
 function inviteModal(g,fresh){
-  const url=location.origin+'/?join='+g.code,txt=`בואו להתחרות איתי בהשביל לבה״ד! הצטרפו לקבוצה "${g.name}":`;
-  const m=modal(`<h3>${fresh?'הקבוצה נפתחה!':'הזמנת חברים'}</h3><p>שלחו לחברים את הקישור. מי שנכנס דרכו מצטרף לקבוצה "${esc(g.name)}". אפשר גם להקליד את הקוד:</p>
+  const url=location.origin+'/?join='+g.code,txt=`בואו להתחרות איתי בהשביל לבה״ד! הצטרפו לקבוצה "${g.name}" בקישור, או באפליקציה: טבלת המובילים ← "+ קבוצה עם חברים" ← קוד ${g.code}`;
+  const m=modal(`<h3>${fresh?'הקבוצה נפתחה!':'הזמנת חברים'}</h3><p>שלחו לחברים את הקישור. מי שהאפליקציה מותקנת אצלו יכול גם להקליד את הקוד ב"+ קבוצה עם חברים":</p>
     <div class="code">${esc(g.code)}</div>
     <button class="big" type="button" id="ivShare">${navigator.share?'שליחה לחברים':'העתקת הקישור'}</button><button class="big ghost" type="button" id="ivClose">סגירה</button>`);
   $('#ivClose').onclick=()=>m.remove();
@@ -906,10 +938,11 @@ function drawBoard(){
   if(r>0){const ahead=b[r-1],gap=ahead.xp-(me?me.xp:0)+1;chase=`<p class="bd-chase">עוד <b>${gap} XP</b> כדי לעקוף את <b>${esc(ahead.name)}</b></p>`}
   else if(r===0&&b.length>1)chase=`<p class="bd-chase lead">אתה במקום הראשון! ${esc(b[1].name)} במרחק ${b[0].xp-b[1].xp} XP</p>`;
   const lonely=inG&&GBOARD&&b.length<2?'<p class="bd-note">בינתיים רק אתה כאן. הזמן חברים כדי להתחרות!</p>':'';
-  el.innerHTML=`<div class="bd-head"><b>${inG?esc(g.name):'טבלת המובילים'}</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button></span></div>${tabs}${chase}${lonely}${inG&&!GBOARD?'<p class="bd-note">טוען...</p>':rows(b,inG?30:8)}
+  el.innerHTML=`<div class="bd-head"><b>${inG?esc(g.name):'טבלת המובילים'}</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button><button class="icon-btn bd-refresh" id="bdRefresh" aria-label="רענון הטבלה" title="רענון"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span></div>${tabs}${chase}${lonely}${inG&&!GBOARD?'<p class="bd-note">טוען...</p>':rows(b,inG?30:8)}
     ${inG?`<div class="bd-sync"><button class="big chat-btn${unread(GROUPS.find(x=>x.code===BSEL))?' new':''}" id="gChat">💬 צ׳אט הקבוצה</button><button class="big ghost" id="gInvite">הזמנת חברים</button><button class="link" id="gLeave">יציאה מהקבוצה</button></div>`
       :`<div class="bd-sync"><button class="big ghost" id="linkDev">סנכרון מכשיר</button><button class="link" id="haveCode2">יש לי קוד ממכשיר אחר</button></div>`}`;
   el.querySelectorAll('.bd-tab[data-b]').forEach(t=>t.onclick=()=>{if(t.dataset.b!==BSEL)selBoard(t.dataset.b)});
+  $('#bdRefresh').onclick=refreshBoard;
   $('#gNew').onclick=groupModal;
   if(inG){$('#gInvite').onclick=()=>inviteModal(g);$('#gChat').onclick=()=>chatModal(g);
     $('#gLeave').onclick=async()=>{const x=$('#gLeave');if(x.dataset.sure!=='1'){x.dataset.sure='1';x.textContent='בטוח? לחיצה נוספת יוצאת';return}
@@ -1006,10 +1039,12 @@ $('#speak').onclick=()=>speak($('#qtext').textContent+'. '+L.opts.map((o,i)=>(i+
 /* quit confirm (in-page) */
 $('#quit').onclick=()=>{
   const m=document.createElement('div');m.className='modal';
-  m.innerHTML='<div class="box"><h3>לצאת מהשיעור?</h3><p>ההתקדמות בשיעור הזה לא תישמר.</p><button class="big" id="stay">להמשיך ללמוד</button><button class="big ghost" id="leave">לצאת</button></div>';
+  m.innerHTML=`<div class="box"><h3>לצאת מהשיעור?</h3><p>${L.xp?`התשובות הנכונות וה־${L.xp} XP שצברת עד עכשיו נשמרים.`:'התשובות הנכונות שלך נשמרות.'}${L.ctx?' הסבב במסלול לא יסומן כגמור.':''}</p><button class="big" id="stay">להמשיך ללמוד</button><button class="big ghost" id="leave">לצאת</button></div>`;
   document.body.appendChild(m);$('#stay').focus();
   $('#stay').onclick=()=>m.remove();
-  $('#leave').onclick=()=>{m.remove();speechSynthesis&&speechSynthesis.cancel();show('home')};
+  // keep the XP earned so far (a whole-topic round can be long); the end-of-round bonuses are only for finishing
+  $('#leave').onclick=()=>{m.remove();speechSynthesis&&speechSynthesis.cancel();
+    if(L.xp>0){sessXp+=L.xp;TOTALXP+=L.xp;store.set('bq-xp',TOTALXP);drawXp();L.xp=0;backup(true)}show('home')};
   m.onclick=e=>{if(e.target===m)m.remove()};
 };
 
@@ -1206,9 +1241,23 @@ else if(ME)pullMe().then(syncMe);
 (()=>{const j=new URLSearchParams(location.search).get('join');if(!j)return;history.replaceState(null,'',location.pathname);
   const code=j.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);if(code.length!==6)return;
   if(typeof setTab==='function')setTab('path');
-  if(ME)doJoinGroup(code).catch(e=>toast(GERR[e.message]||'ההצטרפות לקבוצה נכשלה'));
-  else{store.set('bq-pjoin',code);drawBoard();toast('הוזמנת לקבוצה! כתוב שם בטבלת המובילים כדי להצטרף');
-    requestAnimationFrame(()=>{const f=$('#joinName');if(f){f.scrollIntoView({block:'center'});f.focus()}})}})();
+  if(ME){doJoinGroup(code).catch(e=>toast(GERR[e.message]||'ההצטרפות לקבוצה נכשלה'));return}
+  // not on the board in this browser. Often the link opened outside the installed app (WhatsApp, Safari),
+  // which has its own storage: offer joining here with a name, or typing the code in the app they already use.
+  store.set('bq-pjoin',code);drawBoard();
+  fetch(API+'?group='+code,{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null).then(j=>{
+    const name=j&&j.group?j.group.name:'של חברים';
+    const m=modal(`<h3>הוזמנת לקבוצה "${esc(name)}"!</h3>
+      <p><b>חדש כאן?</b> כתוב שם ותצטרף מיד:</p>
+      <form id="ijForm" class="rd"><input id="ijName" maxlength="20" placeholder="השם שלך" autocomplete="nickname" required><button class="big" type="submit">הצטרפות</button></form>
+      <p class="or"><b>כבר משחק באפליקציה המותקנת?</b> פתח אותה ← טבלת המובילים ← "+ קבוצה עם חברים", והקלד את הקוד:</p>
+      <div class="code">${esc(code)}</div>
+      <button class="big ghost" type="button" id="ijClose">סגירה</button>`);
+    $('#ijClose').onclick=()=>m.remove();
+    $('#ijForm').onsubmit=async e=>{e.preventDefault();const n=$('#ijName').value.trim();if(!n)return;const b=$('#ijForm .big');b.disabled=true;
+      ME={...ACCT,name:n.slice(0,20)};store.set('bq-me',ME);SFX.unlock();await syncMe();
+      try{await doJoinGroup(code);m.remove()}catch(err){b.disabled=false;toast(GERR[err.message]||'ההצטרפות לקבוצה נכשלה')}};
+  })})();
 </script>
 </body>
 </html>

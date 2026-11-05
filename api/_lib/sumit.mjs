@@ -30,7 +30,15 @@ async function call(path, body, retried) {
   return j.Data || {};
 }
 
-export const PRICE = () => Number(process.env.SUB_PRICE || 19.9);
+// Pricing: a one-time payment (PLAN=lifetime, the default) or the older monthly plan (PLAN=monthly).
+// SUB_PRICE is the regular price; LAUNCH_PRICE applies until LAUNCH_UNTIL (an ISO date), if both are set.
+export const PLAN = () => (process.env.PLAN === 'monthly' ? 'monthly' : 'lifetime');
+export const REGULAR_PRICE = () => Number(process.env.SUB_PRICE || 29);
+export const launchUntil = () => { const t = Date.parse(process.env.LAUNCH_UNTIL || ''); return Number.isFinite(t) ? t : null; };
+export const launchActive = (at = Date.now()) => !!(process.env.LAUNCH_PRICE && launchUntil() && at < launchUntil());
+export const PRICE = (at = Date.now()) => (launchActive(at) ? Number(process.env.LAUNCH_PRICE) : REGULAR_PRICE());
+// the lowest price that opens access (a launch-price payment that lands just after the deadline still counts)
+export const MIN_PRICE = () => Math.min(REGULAR_PRICE(), process.env.LAUNCH_PRICE ? Number(process.env.LAUNCH_PRICE) : Infinity);
 
 export function cancelMonthly({ customerId, recurringId }) {
   return call('/billing/recurring/cancel/', { Customer: { ID: customerId }, RecurringCustomerItemID: recurringId });

@@ -8,10 +8,10 @@ import { sql } from './_lib/db.mjs';
 import { cookies } from './_lib/session.mjs';
 import { applyPayment } from './_lib/billing.mjs';
 import { referralStats } from './_lib/players.mjs';
-import { sumitConfigured, listPayments, cancelAllRecurring, SumitError } from './_lib/sumit.mjs';
+import { sumitConfigured, listPayments, cancelAllRecurring, SumitError, PRICE } from './_lib/sumit.mjs';
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const day = d => d ? new Date(d).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short' }) : '';
+const day = d => d ? (new Date(d).getUTCFullYear() >= 2099 ? 'לכל החיים' : new Date(d).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short' })) : '';
 
 const COOKIE = 'bq_admin', DAYS = 30;
 const same = (x, y) => { const a = Buffer.from(String(x || '')), b = Buffer.from(String(y || '')); return a.length === b.length && timingSafeEqual(a, b); };
@@ -73,14 +73,14 @@ async function simulate(req, email) {
   const id = `SIM-${Date.now()}`;
   const r = await fetch(`${proto}://${host}/api/sumit-webhook?key=${encodeURIComponent(key)}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ Simulated: true, Customer: { Name: 'הדמיה', EmailAddress: email }, Document: { ID: id, Total: 19.9 } }),
+    body: JSON.stringify({ Simulated: true, Customer: { Name: 'הדמיה', EmailAddress: email }, Document: { ID: id, Total: PRICE() } }),
     signal: AbortSignal.timeout(15000)
   }).catch(e => ({ ok: false, status: 0, json: async () => ({ error: e.message }) }));
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return `ההדמיה נכשלה (${r.status || 'אין חיבור'}): ${j.error || ''}`;
   if (!j.matched) return `העדכון התקבל, אבל אין עדיין משתמש עם ${email}. התשלום שמור, והגישה תיפתח כשהוא יתחבר עם Google במייל הזה.`;
   const [s] = await sql`select s.paid_until from subscriptions s join users u on u.id = s.user_id where lower(u.email) = ${email}`;
-  return `הצליח: העדכון שויך ל־${email} והמנוי פעיל עד ${day(s && s.paid_until)}. באפליקציה: לרענן או ללחוץ "כבר שילמתי, לבדוק שוב".`;
+  return `הצליח: העדכון שויך ל־${email} והגישה פתוחה ${day(s && s.paid_until) === 'לכל החיים' ? 'לכל החיים' : 'עד ' + day(s && s.paid_until)}. באפליקציה: לרענן או ללחוץ "כבר שילמתי, לבדוק שוב".`;
 }
 
 // Is the SUMIT API key working? Lists the last two days of payments.

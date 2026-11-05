@@ -6,8 +6,11 @@ import { sql } from './db.mjs';
 
 export const GRACE_DAYS = 3;
 
-// Paid through one month after the payment, plus a few days so a renewal charged a day late doesn't lock anyone out.
+// Lifetime plan: one payment, access with no end date. Monthly plan (PLAN=monthly): one month after the payment,
+// plus a few days so a renewal charged a day late doesn't lock anyone out.
+export const LIFETIME_END = new Date('2100-01-01T00:00:00Z');
 export function periodEnd(paidAt) {
+  if (process.env.PLAN !== 'monthly') return new Date(LIFETIME_END);
   const x = new Date(paidAt);
   x.setMonth(x.getMonth() + 1);
   x.setDate(x.getDate() + GRACE_DAYS);
@@ -75,7 +78,7 @@ export async function claimPayments(userId, email) {
 // and, if it is real, recent, for the right amount and not someone else's, open access right away.
 // Returns 'ok' | 'no-api' | 'not-found' | 'invalid' | 'old' | 'amount' | 'taken' | 'error'.
 export async function confirmReturn(userId, paymentId) {
-  const { sumitConfigured, getPayment, PRICE, SumitError } = await import('./sumit.mjs');
+  const { sumitConfigured, getPayment, MIN_PRICE, SumitError } = await import('./sumit.mjs');
   if (!sumitConfigured()) return 'no-api';
   if (!/^\d{1,15}$/.test(String(paymentId || ''))) return 'not-found';
   const ref = `sumit-pay-${Number(paymentId)}`;
@@ -90,7 +93,7 @@ export async function confirmReturn(userId, paymentId) {
   if (!p) return 'not-found';
   if (!p.valid) return 'invalid';
   if (p.date && Date.now() - new Date(p.date).getTime() > 3 * 864e5) return 'old';
-  if (p.amount != null && p.amount < PRICE() - 0.01) return 'amount';
+  if (p.amount != null && p.amount < MIN_PRICE() - 0.01) return 'amount';
   // a standing-order customer already tied to another user can't be claimed by guessing their payment id
   if (p.customerId) {
     const [other] = await sql`select user_id from subscriptions where sumit_customer_id = ${p.customerId} and user_id <> ${userId} limit 1`;

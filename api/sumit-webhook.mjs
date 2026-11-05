@@ -8,7 +8,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { sql } from './_lib/db.mjs';
 import { applyPayment } from './_lib/billing.mjs';
 import { notify, adminLink } from './_lib/notify.mjs';
-import { sumitConfigured, getEntity, getDocument, PRICE } from './_lib/sumit.mjs';
+import { sumitConfigured, getEntity, getDocument, MIN_PRICE } from './_lib/sumit.mjs';
 
 const EMAIL = /^[^\s@<>"']+@[^\s@<>"']+\.[a-z]{2,}$/i;
 
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
       if (f.fetched.length) await sql`update webhook_events set body = ${(raw + '\n\nמסאמיט: ' + JSON.stringify(f.fetched)).slice(0, 40000)} where id = ${ev.id}`;
     }
     // only an approved payment of at least the price opens access
-    if (f.failed || (f.amount != null && f.amount > 0 && f.amount < PRICE() - 0.01)) {
+    if (f.failed || (f.amount != null && f.amount > 0 && f.amount < MIN_PRICE() - 0.01)) {
       console.log('sumit-webhook: not a valid subscription payment', JSON.stringify({ failed: !!f.failed, amount: f.amount }));
       return res.status(200).json({ ok: true, matched: false, note: f.failed ? 'payment not approved' : 'amount below price' });
     }

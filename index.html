@@ -183,6 +183,8 @@ button:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
 .access .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
 .modal .box{max-height:calc(100dvh - 32px);overflow:auto}
 .pw-price{font:900 1.7rem var(--display);color:var(--accent)}
+.pw-was{font:700 1rem var(--display);color:var(--muted)}
+.pw-launch{margin:0;font-weight:800;color:var(--fire-deep)}
 .pw-price small{font:600 .9rem var(--body);color:var(--muted)}
 .pw-list{margin:0;padding:0 20px 0 0;text-align:right;display:flex;flex-direction:column;gap:6px}
 .pw-step{display:flex;flex-direction:column;gap:10px;text-align:right}
@@ -665,7 +667,7 @@ function topicMenu(c){
   const m=modal(`<h3>${esc(c)}</h3>
     ${n>LEN?`<button class="big" type="button" id="tmShort">סבב קצר · ${LEN} שאלות</button>`:''}
     <button class="big${n>LEN?' ghost':''}" type="button" id="tmAll">כל הנושא · ${n} שאלות</button>
-    <p class="bd-note">${ONLY?'רק שאלות שעוד לא ענית עליהן נכון. ':''}${lockedPart?`כולל רק השאלות הפתוחות לך. מנוי פותח את כל ${all} השאלות בנושא.`:'אפשר לעצור באמצע. מה שענית נשמר.'}</p>
+    <p class="bd-note">${ONLY?'רק שאלות שעוד לא ענית עליהן נכון. ':''}${lockedPart?`כולל רק השאלות הפתוחות לך. ${MONTHLY()?'מנוי':'תשלום אחד'} פותח את כל ${all} השאלות בנושא.`:'אפשר לעצור באמצע. מה שענית נשמר.'}</p>
     ${lockedPart?'<button class="link" type="button" id="tmSub">לכל השאלות</button>':''}
     <button class="big ghost" type="button" id="tmX">ביטול</button>`);
   $('#tmX').onclick=()=>m.remove();
@@ -1150,7 +1152,12 @@ const QCACHE='bq-qs';
   history.replaceState(null,'',location.pathname);if(t!=='1'){try{localStorage.removeItem('bq-cfg')}catch(e){}}})();
 let CFG=store.get('bq-cfg',null), ACCESS=store.get('bq-access',null), USER=null, SIGNED=false;
 const locked=()=>!!(CFG&&CFG.paywall)&&!(ACCESS&&ACCESS.full);
-const priceTxt=()=>'₪'+Number(CFG&&CFG.price||19.9).toFixed(2);
+const priceTxt=()=>'₪'+Number(CFG&&CFG.price||29).toFixed(2);
+// one-time payment for lifetime access (CFG.plan 'lifetime', the default) or the older monthly plan
+const MONTHLY=()=>!!(CFG&&CFG.plan==='monthly');
+const LIFETIME_ACCESS=()=>!!(ACCESS&&ACCESS.paidUntil&&new Date(ACCESS.paidUntil).getUTCFullYear()>=2099);
+const planTxt=()=>MONTHLY()?'לחודש':'פעם אחת';
+const launchTxt=()=>CFG&&CFG.launchUntil&&CFG.regularPrice>CFG.price?`מחיר השקה עד ${untilTxt(Date.parse(CFG.launchUntil)).replace(/^עד /,'')} (אחר כך ₪${Number(CFG.regularPrice).toFixed(2)})`:'';
 function addQuestions(rows){let n=0;(rows||[]).forEach(r=>{if(Array.isArray(r)&&Number.isInteger(r[0])&&!D[r[0]]){D[r[0]]=r.slice(1);n++}});if(n)reindex();return n}
 addQuestions(store.get(QCACHE,null));
 async function call(path,opts={}){
@@ -1195,13 +1202,14 @@ function drawAccess(){
   el.hidden=false;
   if(ACCESS&&ACCESS.full){
     const friend=ACCESS.reason==='friend',until=ACCESS.paidUntil?new Date(ACCESS.paidUntil).toLocaleDateString('he-IL'):'';
-    const sub=friend?'אתה ברשימת החברים, הכול פתוח':ACCESS.status==='canceled'||ACCESS.status==='cancel_requested'?`המנוי בוטל. הגישה פתוחה עד ${until}`:'המנוי מתחדש כל חודש';
+    const life=LIFETIME_ACCESS();
+    const sub=friend?'אתה ברשימת החברים, הכול פתוח':life?'כל השאלות פתוחות לך, בלי הגבלת זמן':ACCESS.status==='canceled'||ACCESS.status==='cancel_requested'?`המנוי בוטל. הגישה פתוחה עד ${until}`:'המנוי מתחדש כל חודש';
     el.className='access ok';
-    el.innerHTML=`<div class="row"><div><b>${friend?'גישה מלאה לכל השאלות':'מנוי פעיל'}</b><p>${sub}</p></div>${SIGNED&&!friend?'<button class="link" id="accMng">ניהול מנוי</button>':''}</div>`;
+    el.innerHTML=`<div class="row"><div><b>${friend?'גישה מלאה לכל השאלות':life?'גישה מלאה לכל החיים ✓':'מנוי פעיל'}</b><p>${sub}</p></div>${SIGNED&&!friend?`<button class="link" id="accMng">${life?'החשבון שלי':'ניהול מנוי'}</button>`:''}</div>`;
     if($('#accMng'))$('#accMng').onclick=manageSub;
     return}
   el.className='access';
-  el.innerHTML=`<div><b>יש לך גישה ל־${FREE_Q.length} מתוך ${QTOTAL.toLocaleString('en')} שאלות</b><p>מנוי פותח את כל השאלות ואת המסלול המלא</p></div><button class="big" id="accGo">לכל השאלות · ${priceTxt()} לחודש</button>${SIGNED&&payingRecently()?'<button class="link" id="accCheck">כבר שילמתי, לבדוק שוב</button>':''}`;
+  el.innerHTML=`<div><b>יש לך גישה ל־${FREE_Q.length} מתוך ${QTOTAL.toLocaleString('en')} שאלות</b><p>${MONTHLY()?'מנוי פותח את כל השאלות ואת המסלול המלא':'תשלום אחד פותח את כל השאלות ואת המסלול המלא, לכל החיים'}</p></div><button class="big" id="accGo">לכל השאלות · ${priceTxt()} ${planTxt()}</button>${SIGNED&&payingRecently()?'<button class="link" id="accCheck">כבר שילמתי, לבדוק שוב</button>':''}`;
   $('#accGo').onclick=()=>openPaywall();
   if($('#accCheck'))$('#accCheck').onclick=()=>checkPaid(true);
 }
@@ -1210,7 +1218,8 @@ const loadScript=src=>new Promise((ok,no)=>{const old=document.querySelector(`sc
 async function openPaywall(errMsg){
   SFX.tap();
   const m=modal(`<h3>כל ${QTOTAL.toLocaleString('en')} השאלות</h3>
-    <div class="pw-price">${priceTxt()} <small>לחודש · ביטול בכל רגע</small></div>
+    <div class="pw-price">${priceTxt()} ${CFG&&CFG.launchUntil&&CFG.regularPrice>CFG.price?`<s class="pw-was">₪${Number(CFG.regularPrice).toFixed(2)}</s>`:''} <small>${MONTHLY()?'לחודש · ביטול בכל רגע':'תשלום אחד · גישה לכל החיים'}</small></div>
+    ${launchTxt()?`<p class="pw-launch">🔥 ${launchTxt()}</p>`:''}
     <ul class="pw-list"><li>כל הנושאים, עם הסבר אחרי כל תשובה</li><li>מסלול הלמידה המלא ובחינות חוזרות</li><li>עובד בטלפון ובמחשב, גם בלי אינטרנט</li></ul>
     <div id="pwStep" class="pw-step"></div>
     <p class="pw-note">התשלום מתבצע אצל סאמיט בחיבור מאובטח, ופרטי הכרטיס לא עוברים דרכנו. <a href="/terms.html" target="_blank" rel="noopener">תקנון ומדיניות ביטול</a></p>
@@ -1219,7 +1228,7 @@ async function openPaywall(errMsg){
   const step=m.querySelector('#pwStep');
   if(!CFG||!CFG.paywall){step.innerHTML='<p>כרגע כל השאלות פתוחות לכולם.</p>';return}
   if(!SIGNED){
-    step.innerHTML=`<p><b>שלב 1 מתוך 2:</b> התחברות, כדי שהמנוי יישמר לך בכל מכשיר</p><div id="gsiBtn"></div>
+    step.innerHTML=`<p><b>שלב 1 מתוך 2:</b> התחברות, כדי ש${MONTHLY()?'המנוי יישמר':'הגישה תישמר'} לך בכל מכשיר</p><div id="gsiBtn"></div>
       ${navigator.standalone?'<p class="pw-note">אם ההתחברות לא נפתחת באפליקציה, פתחו את האתר ב-Safari, הירשמו שם, והגישה תעבור לאפליקציה.</p>':''}`;
     if(!CFG.googleClientId){step.querySelector('#gsiBtn').textContent='ההתחברות עוד לא הוגדרה.';return}
     try{await loadScript('https://accounts.google.com/gsi/client');
@@ -1231,11 +1240,11 @@ async function openPaywall(errMsg){
     return}
   const mail=USER?USER.email:'';
   step.innerHTML=`<p><b>שלב 2 מתוך 2:</b> תשלום בדף המאובטח של סאמיט</p>
-    ${mail?`<div class="pw-mail"><span>בדף התשלום הקלידו את המייל הזה, וכך המנוי ייפתח לכם אוטומטית:</span>
+    ${mail?`<div class="pw-mail"><span>בדף התשלום הקלידו את המייל הזה, וכך ${MONTHLY()?'המנוי ייפתח':'הגישה תיפתח'} לכם אוטומטית:</span>
       <span class="addr"><b>${esc(mail)}</b><button class="link" id="pwCopy" type="button">העתקה</button></span></div>`:''}
     <div class="og-errors" role="alert">${errMsg?esc(errMsg):''}</div>
     <label class="terms"><input type="checkbox" id="pwAgree"> קראתי ואני מסכים/ה <a href="/terms.html" target="_blank" rel="noopener">לתקנון</a></label>
-    <a class="big" id="payGo" href="${esc(CFG.payUrl||'#')}" aria-disabled="true">לתשלום ${priceTxt()} לחודש</a>
+    <a class="big" id="payGo" href="${esc(CFG.payUrl||'#')}" aria-disabled="true">לתשלום ${priceTxt()} ${MONTHLY()?'לחודש':'· גישה לכל החיים'}</a>
     <button class="link" id="pwCheck" type="button">כבר שילמתי, לבדוק שוב</button>`;
   const go=step.querySelector('#payGo'),agree=step.querySelector('#pwAgree');
   agree.onchange=()=>go.setAttribute('aria-disabled',!agree.checked);
@@ -1251,7 +1260,7 @@ async function checkPaid(loud,ret){
   for(let i=0;i<8;i++){
     const r=await call('/api/account',{method:'POST',body:JSON.stringify({action:'sync',...(i===0&&ret?{ret}:{})})}).catch(()=>null);
     if(r&&r.ok&&r.j.access&&r.j.access.full){checking=false;store.set('bq-paying',0);ACCESS=r.j.access;store.set('bq-access',ACCESS);
-      toast('המנוי הופעל! כל השאלות פתוחות');burst(innerWidth/2,200,90,10);await refreshAccess();return true}
+      toast(MONTHLY()?'המנוי הופעל! כל השאלות פתוחות':'הגישה המלאה נפתחה! כל השאלות פתוחות לכל החיים 🎉');burst(innerWidth/2,200,90,10);await refreshAccess();return true}
     if(r&&r.status===401)break;
     if(r&&r.j&&['invalid','old','amount','taken','not-found'].includes(r.j.confirm)){checking=false;
       toast(r.j.confirm==='invalid'?'סאמיט לא אישרה את התשלום. אם חויבת, פנו אלינו':'לא הצלחנו לאמת את התשלום. אם חויבת, פנו אלינו');drawAccess();return false}
@@ -1264,9 +1273,9 @@ async function checkPaid(loud,ret){
 const payingRecently=()=>Date.now()-store.get('bq-paying',0)<6*36e5;
 function manageSub(){
   const until=ACCESS&&ACCESS.paidUntil?new Date(ACCESS.paidUntil).toLocaleDateString('he-IL'):'';
-  const active=ACCESS&&ACCESS.status==='active';
-  const m=modal(`<h3>ניהול מנוי</h3>${USER?`<p>${esc(USER.email)}</p>`:''}
-    <p>${active?`המנוי פעיל ומתחדש כל חודש (${priceTxt()}).`:`המנוי בוטל. הגישה פתוחה עד ${until}.`}</p>
+  const life=LIFETIME_ACCESS(),active=!life&&ACCESS&&ACCESS.status==='active';
+  const m=modal(`<h3>${life?'החשבון שלי':'ניהול מנוי'}</h3>${USER?`<p>${esc(USER.email)}</p>`:''}
+    <p>${life?'יש לך גישה מלאה לכל השאלות, לכל החיים. אין חיובים נוספים.':active?`המנוי פעיל ומתחדש כל חודש.`:`המנוי בוטל. הגישה פתוחה עד ${until}.`}</p>
     ${active?'<button class="big no" id="subCancel">ביטול המנוי</button>':''}
     <button class="big ghost" id="subOut">התנתקות</button><button class="big ghost" id="subClose">סגירה</button>`);
   m.querySelector('#subClose').onclick=()=>m.remove();

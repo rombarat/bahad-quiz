@@ -7,6 +7,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { sql } from './_lib/db.mjs';
 import { cookies } from './_lib/session.mjs';
 import { applyPayment } from './_lib/billing.mjs';
+import { sumitConfigured, listPayments, SumitError } from './_lib/sumit.mjs';
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const day = d => d ? new Date(d).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short' }) : '';
@@ -81,7 +82,37 @@ async function simulate(req, email) {
   return `הצליח: העדכון שויך ל־${email} והמנוי פעיל עד ${day(s && s.paid_until)}. באפליקציה: לרענן או ללחוץ "כבר שילמתי, לבדוק שוב".`;
 }
 
+// Is the SUMIT API key working? Lists the last two days of payments.
+async function sumitCheck() {
+  if (!sumitConfigured()) return 'חסרים SUMIT_COMPANY_ID או SUMIT_API_KEY ב־Vercel.';
+  try {
+    const to = new Date(), from = new Date(to.getTime() - 2 * 864e5);
+    const list = await listPayments(from, to);
+    return `החיבור לסאמיט תקין ✓ (נמצאו ${list.length} תשלומים ביומיים האחרונים)`;
+  } catch (e) {
+    if (e instanceof SumitError) return `סאמיט החזירה שגיאה: ${e.message}. בדקו את מספר החברה ואת מפתח ה־API.`;
+    return `אין חיבור לסאמיט: ${e.message}`;
+  }
+}
+// Run a stored webhook body through the webhook again (e.g. after the API key was added).
+async function reprocess(req, id) {
+  const [ev] = await sql`select body from webhook_events where id = ${Number(id)}`;
+  if (!ev) return 'העדכון לא נמצא';
+  const raw = String(ev.body).split('\n\nמסאמיט: ')[0];
+  if (/"Simulated":true/.test(raw)) return 'זו הדמיה, אין מה לעבד מחדש';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const proto = req.headers['x-forwarded-proto'] || (/^localhost|^127\./.test(host) ? 'http' : 'https');
+  const r = await fetch(`${proto}://${host}/api/sumit-webhook?key=${encodeURIComponent(process.env.SUMIT_WEBHOOK_KEY || '')}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: raw, signal: AbortSignal.timeout(20000)
+  }).catch(e => ({ ok: false, status: 0, json: async () => ({ error: e.message }) }));
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) return `העיבוד נכשל (${r.status}): ${j.error || ''}`;
+  return j.matched ? 'עובד מחדש: התשלום שויך והמנוי נפתח ✓' : `עובד מחדש, אבל לא שויך${j.note ? ' (' + j.note + ')' : ''}. פתחו את העדכון החדש למטה כדי לראות מה סאמיט החזירה.`;
+}
+
 async function act(b, req) {
+  if (b.do === 'sumitcheck') return sumitCheck();
+  if (b.do === 'reprocess') return reprocess(req, b.ev);
   const email = String(b.email || '').trim().toLowerCase();
   if (!email) return 'חסר מייל';
   if (b.do === 'simulate') return simulate(req, email);
@@ -144,7 +175,8 @@ ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
   return `<div class="user"><div><b dir="ltr">${esc(u.email)}</b><div class="muted">${esc(u.name || '')} · הצטרף ${day(u.created_at)}</div>
     <div>${on ? `מנוי: ${status(u.status)} עד ${day(u.paid_until)}` : '<span class="muted">בלי מנוי</span>'}</div></div>
     ${on ? btn('revoke', 'סגירת גישה', 'ghost') : btn('simulate', 'הדמיית תשלום')}</div>`; }).join('') : '<span class="muted">עוד אף אחד</span>'}</div>
-<h2>עדכונים אחרונים מסאמיט</h2><div class="box">${events.length ? events.map(e => `<details><summary>${day(e.received_at)} · ${e.matched ? 'שויך' : '<span class="warn">לא שויך</span>'}</summary><pre>${esc(e.body)}</pre></details>`).join('') : '<span class="muted">עוד לא הגיע אף עדכון</span>'}</div>
+<h2>עדכונים אחרונים מסאמיט</h2><div class="box"><form method="post" style="margin-bottom:8px"><input type="hidden" name="do" value="sumitcheck"><button>בדיקת חיבור לסאמיט</button></form>
+${events.length ? events.map(e => `<details><summary>${day(e.received_at)} · ${e.matched ? 'שויך' : '<span class="warn">לא שויך</span>'}</summary>${!e.matched && !/"Simulated":true/.test(e.body) && !/^\{"source":"return/.test(e.body) ? `<form method="post" style="margin:6px 0"><input type="hidden" name="do" value="reprocess"><input type="hidden" name="ev" value="${e.id}"><button>עיבוד מחדש</button></form>` : ''}<pre>${esc(e.body)}</pre></details>`).join('') : '<span class="muted">עוד לא הגיע אף עדכון</span>'}</div>
 `);
     return send(res, 200, html);
   } catch (e) {

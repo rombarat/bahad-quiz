@@ -172,6 +172,12 @@ button:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
 /* ---------- ACCESS / SUBSCRIPTION ---------- */
 .access{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:2px solid var(--fire);border-radius:18px;padding:14px 16px}
 .access.ok{border-color:var(--line)}
+.access.promo{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,var(--surface));text-align:center}
+.access.promo p{margin:0}
+.cd{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;direction:rtl}
+.cd span{display:flex;flex-direction:column;align-items:center;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:8px 2px}
+.cd b{font:900 1.7rem/1 var(--display);font-variant-numeric:tabular-nums;color:var(--fire-deep)}
+.cd small{font:700 .78rem var(--body);color:var(--muted);margin-top:3px}
 .access b{font:800 1.02rem var(--display)}
 .access p{margin:2px 0 0;color:var(--muted);font-size:.92rem}
 .access .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
@@ -1129,8 +1135,31 @@ async function refreshAccess(){
   }catch(e){}
   if(!$('#home').hidden)drawHome();else drawAccess();
 }
+// free-until countdown (PAYWALL_FROM): everything open, the clock shows when the paywall starts
+let cdTimer=0;
+// a close at midnight reads as "until the end of Thursday 12.11", not "until Friday 00:00"
+function untilTxt(end){
+  const IL={timeZone:'Asia/Jerusalem'},hm=new Date(end).toLocaleTimeString('he-IL',{...IL,hour:'2-digit',minute:'2-digit',hour12:false});
+  if(hm==='00:00'||hm==='24:00')return 'עד סוף '+new Date(end-1000).toLocaleDateString('he-IL',{...IL,weekday:'long',day:'numeric',month:'numeric'});
+  return 'עד '+new Date(end).toLocaleString('he-IL',{...IL,weekday:'long',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function drawCountdown(el){
+  const end=Date.parse(CFG.openUntil);
+  el.hidden=false;el.className='access promo';
+  el.innerHTML=`<b>🎁 לקראת המבחנים: כל ${QTOTAL.toLocaleString('en')} השאלות פתוחות בחינם</b>
+    <div class="cd" role="timer" aria-label="הזמן שנשאר"><span><b id="cdD">0</b><small>ימים</small></span><span><b id="cdH">00</b><small>שעות</small></span><span><b id="cdM">00</b><small>דקות</small></span><span><b id="cdS">00</b><small>שניות</small></span></div>
+    <p class="pw-note">${untilTxt(end)}. אחרי זה: ${FREE_Q.length} שאלות חינם, או מנוי ב־${priceTxt()} לחודש לכל השאלות.</p>`;
+  const two=n=>String(n).padStart(2,'0');
+  const tick=()=>{const left=Math.max(0,end-Date.now()),t=Math.floor(left/1000);
+    const d=$('#cdD');if(!d){clearInterval(cdTimer);return}
+    d.textContent=Math.floor(t/86400);$('#cdH').textContent=two(Math.floor(t/3600)%24);$('#cdM').textContent=two(Math.floor(t/60)%60);$('#cdS').textContent=two(t%60);
+    if(!left){clearInterval(cdTimer);CFG.openUntil=null;refreshAccess()}};
+  clearInterval(cdTimer);tick();cdTimer=setInterval(tick,1000);
+}
 function drawAccess(){
   const el=$('#access');if(!el)return;
+  if(CFG&&!CFG.paywall&&CFG.openUntil&&Date.parse(CFG.openUntil)>Date.now()){drawCountdown(el);return}
+  clearInterval(cdTimer);
   if(!CFG||!CFG.paywall){el.hidden=true;return}
   el.hidden=false;
   if(ACCESS&&ACCESS.full){

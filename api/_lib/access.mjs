@@ -17,7 +17,10 @@ const FRIENDS_AT_LAUNCH = [
 const list = v => String(v || '').split(/[\s,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
 // On for everyone with PAYWALL=on. Before that, one browser can try the whole flow by opening /?paywall-test=1
 // (sets the bq_pwtest cookie; /?paywall-test=0 clears it). It only ever locks that browser, so it needs no protection.
-export const paywallOn = req => process.env.PAYWALL === 'on' || (!!req && cookies(req).bq_pwtest === '1');
+// PAYWALL_FROM (an ISO date) delays it: until then everything stays open and the app shows a countdown.
+export const paywallFrom = () => { const t = Date.parse(process.env.PAYWALL_FROM || ''); return Number.isFinite(t) ? t : null; };
+export const paywallOn = req => (process.env.PAYWALL === 'on' && !(paywallFrom() && Date.now() < paywallFrom()))
+  || (!!req && cookies(req).bq_pwtest === '1');
 const friendPlayer = id => FRIENDS_AT_LAUNCH.includes(id) || list(process.env.FRIEND_PLAYER_IDS).includes(id);
 const friendEmail = email => !!email && list(process.env.FRIEND_EMAILS).includes(email.toLowerCase());
 const sha = s => createHash('sha256').update(String(s)).digest('hex');

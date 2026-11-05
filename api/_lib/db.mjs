@@ -54,7 +54,8 @@ const SCHEMA = [
 export async function sql(strings, ...values) {
   const run = client();
   if (!schemaReady) {
-    schemaReady = (async () => { for (const s of SCHEMA) await run([s]); })().catch(e => { schemaReady = null; throw e; });
+    // plain SQL text goes through .query(): the Neon driver only accepts real tagged templates when called directly
+    schemaReady = (async () => { for (const s of SCHEMA) await run.query(s); })().catch(e => { schemaReady = null; throw e; });
   }
   await schemaReady;
   return run(strings, ...values);

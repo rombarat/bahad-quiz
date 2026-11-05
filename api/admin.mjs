@@ -43,6 +43,7 @@ input[type=email]{min-width:0;flex:1 1 220px;direction:ltr}button{background:var
 .err{border-color:var(--bad)}
 pre{white-space:pre-wrap;word-break:break-all;font-size:12px;margin:4px 0 0;direction:ltr;text-align:left}details{border-bottom:1px solid var(--line);padding:6px 0}
 .login{max-width:340px;margin:12vh auto 0}.login form{flex-direction:column;align-items:stretch}.login input{direction:ltr}
+.user{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}.user:last-child{border-bottom:0}.user b{word-break:break-all}.user form button{white-space:nowrap}button.ghost{background:none;color:var(--muted);border:1px solid var(--line)}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.top form button{background:none;color:var(--muted);text-decoration:underline;padding:0}`;
 const page = (title, inner) => `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>${title}</title><style>${STYLE}</style></head><body><main>${inner}</main></body></html>`;
@@ -138,7 +139,11 @@ ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
 <h2>בקשות ביטול (${requests.length})</h2><div class="box">${requests.length ? `<p class="muted">לבטל את הוראת הקבע של כל אחד מהם בסאמיט, ואז לסמן "ביטלתי בסאמיט".</p><table>${requests.map(s => row([esc(s.email), esc(s.name), `גישה עד ${day(s.paid_until)}`, `ביקש ב־${day(s.updated_at)}`])).join('')}</table>` : '<span class="muted">אין</span>'}</div>
 <h2>תשלומים שלא שויכו למשתמש (${orphans.length})</h2><div class="box">${orphans.length ? `<p class="muted">המייל בתשלום לא תואם אף משתמש. כשהמשתמש יתחבר עם המייל הזה הגישה תיפתח לבד; אם שילם עם מייל אחר, הוסיפו לו חודש לפי המייל שלו באפליקציה.</p><table>${orphans.map(o => row([esc(o.email || '(בלי מייל)'), esc(o.amount), day(o.paid_at), esc(o.kind)])).join('')}</table>` : '<span class="muted">אין</span>'}</div>
 <h2>מנויים (${subs.length})</h2><div class="box">${subs.length ? `<table><tr><th>מייל</th><th>שם</th><th>מצב</th><th>גישה עד</th></tr>${subs.map(s => row([esc(s.email), esc(s.name), status(s.status), day(s.paid_until)])).join('')}</table>` : '<span class="muted">עוד אין</span>'}</div>
-<h2>כל מי שהתחבר עם Google (${userCount})</h2><div class="box">${users.length ? `<table><tr><th>מייל</th><th>שם</th><th>הצטרף</th><th>מנוי</th></tr>${users.map(u => row([esc(u.email), esc(u.name), day(u.created_at), u.paid_until && new Date(u.paid_until) > new Date() ? status(u.status) : '<span class="muted">אין</span>'])).join('')}</table>` : '<span class="muted">עוד אף אחד</span>'}</div>
+<h2>כל מי שהתחבר עם Google (${userCount})</h2><div class="box"><p class="muted">"הדמיית תשלום" שולחת לשרת את אותו עדכון שסאמיט שולחת אחרי תשלום, בלי חיוב, ופותחת למשתמש מנוי לחודש. לניקוי אחרי בדיקה: "סגירת גישה".</p>${users.length ? users.map(u => { const on = u.paid_until && new Date(u.paid_until) > new Date();
+  const btn = (d, label, cls) => `<form method="post"><input type="hidden" name="email" value="${esc(u.email)}"><input type="hidden" name="do" value="${d}"><button class="${cls || ''}">${label}</button></form>`;
+  return `<div class="user"><div><b dir="ltr">${esc(u.email)}</b><div class="muted">${esc(u.name || '')} · הצטרף ${day(u.created_at)}</div>
+    <div>${on ? `מנוי: ${status(u.status)} עד ${day(u.paid_until)}` : '<span class="muted">בלי מנוי</span>'}</div></div>
+    ${on ? btn('revoke', 'סגירת גישה', 'ghost') : btn('simulate', 'הדמיית תשלום')}</div>`; }).join('') : '<span class="muted">עוד אף אחד</span>'}</div>
 <h2>עדכונים אחרונים מסאמיט</h2><div class="box">${events.length ? events.map(e => `<details><summary>${day(e.received_at)} · ${e.matched ? 'שויך' : '<span class="warn">לא שויך</span>'}</summary><pre>${esc(e.body)}</pre></details>`).join('') : '<span class="muted">עוד לא הגיע אף עדכון</span>'}</div>
 `);
     return send(res, 200, html);

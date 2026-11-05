@@ -3,7 +3,7 @@
 // - friends: device accounts that were on the leaderboard before the paywall, plus FRIEND_PLAYER_IDS / FRIEND_EMAILS
 // - subscribers: an active or cancelled subscription whose paid period hasn't ended yet
 import { createHash } from 'node:crypto';
-import { head } from '@vercel/blob';
+import { getPlayer } from './players.mjs';
 import { sql, hasDb } from './db.mjs';
 import { sessionOf, cookies } from './session.mjs';
 
@@ -32,10 +32,8 @@ async function devicePlayer(req) {
     return p && (p.hashes || []).includes(sha(secret)) ? id : null;
   }
   try {
-    const h = await head(`players/${id}.json`);
-    const p = await (await fetch(`${h.url}?v=${encodeURIComponent(h.uploadedAt)}`, { cache: 'no-store' })).json();
-    const hashes = p.hashes || (p.hash ? [p.hash] : []);
-    return hashes.includes(sha(secret)) ? id : null;
+    const p = await getPlayer(id);
+    return p && p.hashes.includes(sha(secret)) ? id : null;
   } catch { return null; }
 }
 

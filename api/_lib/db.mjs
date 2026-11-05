@@ -42,6 +42,19 @@ const SCHEMA = [
      paid_at timestamptz not null default now(),
      kind text not null)`,
   `create index if not exists payments_email on payments (lower(email)) where user_id is null`,
+  // leaderboard players (moved from Vercel Blob) and short-lived codes for linking another device
+  `create table if not exists players (
+     id text primary key,
+     name text not null default '',
+     hashes jsonb not null default '[]'::jsonb,
+     xp integer not null default 0,
+     correct integer not null default 0,
+     rounds integer not null default 0,
+     stage integer not null default 1,
+     progress jsonb,
+     updated bigint not null default 0)`,
+  `create index if not exists players_rank on players (xp desc) where name <> ''`,
+  `create table if not exists pair_codes (code text primary key, id text not null, exp bigint not null)`,
   // raw webhook bodies, kept so a payment that didn't match anyone can be checked and assigned by hand
   `create table if not exists webhook_events (
      id bigserial primary key,

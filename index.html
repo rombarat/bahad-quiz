@@ -1032,11 +1032,11 @@ async function openPaywall(errMsg){
 }
 // After paying, SUMIT reports the payment to our server within seconds; ask a few times before giving up.
 let checking=false;
-async function checkPaid(loud){
+async function checkPaid(loud,ret){
   if(checking)return;checking=true;
   if(loud)toast('בודק את התשלום…');
   for(let i=0;i<8;i++){
-    const r=await call('/api/account',{method:'POST',body:JSON.stringify({action:'sync'})}).catch(()=>null);
+    const r=await call('/api/account',{method:'POST',body:JSON.stringify({action:'sync',...(i===0&&ret?{ret}:{})})}).catch(()=>null);
     if(r&&r.ok&&r.j.access&&r.j.access.full){checking=false;store.set('bq-paying',0);ACCESS=r.j.access;store.set('bq-access',ACCESS);
       toast('המנוי הופעל! כל השאלות פתוחות');burst(innerWidth/2,200,90,10);await refreshAccess();return true}
     if(r&&r.status===401)break;
@@ -1071,7 +1071,7 @@ function afterReturn(){
   history.replaceState(null,'',location.pathname);
   if(login==='error')toast('ההתחברות נכשלה. נסו שוב');
   if(paid==='fail')openPaywall('התשלום לא עבר. אפשר לנסות שוב.');
-  else if(paid)checkPaid(true);
+  else if(paid)checkPaid(true,Object.fromEntries(u)); // whatever the payment page added to the return address goes to the server log
   else if(login==='ok'&&store.get('bq-after-login',0)){store.set('bq-after-login',0);if(locked())openPaywall()}
 }
 

@@ -33,6 +33,14 @@ export default async function handler(req, res) {
 
     if (b.action === 'logout') { setSessionCookie(res, ''); return res.status(200).json({ ok: true }); }
 
+    // Coming back from SUMIT's payment page: keep the parameters it added to the return address (shown in /admin),
+    // to learn what SUMIT passes back. Logged once per return, signed in or not.
+    if (b.action === 'sync' && b.ret && typeof b.ret === 'object' && Object.keys(b.ret).some(k => k !== 'paid')) {
+      const pre = await accessFor(req);
+      const body = JSON.stringify({ source: 'return-from-payment-page', user: pre.user ? pre.user.email : null, params: b.ret }).slice(0, 4000);
+      await sql`insert into webhook_events (body) values (${body})`;
+    }
+
     const a = await current(req);
     if (!a.viaSession) return res.status(401).json({ error: 'login required' });
 

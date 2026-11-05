@@ -121,6 +121,8 @@ export default async function handler(req, res) {
     let msg = '';
     if (req.method === 'POST') msg = await act(b, req);
     const subs = await sql`select u.email, u.name, s.status, s.paid_until, s.updated_at from subscriptions s join users u on u.id = s.user_id order by (s.status = 'cancel_requested') desc, s.paid_until desc limit 300`;
+    const users = await sql`select u.email, u.name, u.created_at, s.status, s.paid_until from users u left join subscriptions s on s.user_id = u.id order by u.created_at desc limit 200`;
+    const [{ n: userCount }] = await sql`select count(*)::int as n from users`;
     const orphans = await sql`select ref, email, amount, paid_at, kind from payments where user_id is null order by paid_at desc limit 100`;
     const events = await sql`select id, received_at, matched, body from webhook_events order by id desc limit 15`;
     const active = subs.filter(s => s.paid_until && new Date(s.paid_until) > new Date()).length;
@@ -135,7 +137,8 @@ ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
 <input type="number" name="months" value="1" min="1" max="12" style="width:70px"><button>ביצוע</button></form></div>
 <h2>בקשות ביטול (${requests.length})</h2><div class="box">${requests.length ? `<p class="muted">לבטל את הוראת הקבע של כל אחד מהם בסאמיט, ואז לסמן "ביטלתי בסאמיט".</p><table>${requests.map(s => row([esc(s.email), esc(s.name), `גישה עד ${day(s.paid_until)}`, `ביקש ב־${day(s.updated_at)}`])).join('')}</table>` : '<span class="muted">אין</span>'}</div>
 <h2>תשלומים שלא שויכו למשתמש (${orphans.length})</h2><div class="box">${orphans.length ? `<p class="muted">המייל בתשלום לא תואם אף משתמש. כשהמשתמש יתחבר עם המייל הזה הגישה תיפתח לבד; אם שילם עם מייל אחר, הוסיפו לו חודש לפי המייל שלו באפליקציה.</p><table>${orphans.map(o => row([esc(o.email || '(בלי מייל)'), esc(o.amount), day(o.paid_at), esc(o.kind)])).join('')}</table>` : '<span class="muted">אין</span>'}</div>
-<h2>מנויים</h2><div class="box"><table><tr><th>מייל</th><th>שם</th><th>מצב</th><th>גישה עד</th></tr>${subs.map(s => row([esc(s.email), esc(s.name), status(s.status), day(s.paid_until)])).join('')}</table></div>
+<h2>מנויים (${subs.length})</h2><div class="box">${subs.length ? `<table><tr><th>מייל</th><th>שם</th><th>מצב</th><th>גישה עד</th></tr>${subs.map(s => row([esc(s.email), esc(s.name), status(s.status), day(s.paid_until)])).join('')}</table>` : '<span class="muted">עוד אין</span>'}</div>
+<h2>כל מי שהתחבר עם Google (${userCount})</h2><div class="box">${users.length ? `<table><tr><th>מייל</th><th>שם</th><th>הצטרף</th><th>מנוי</th></tr>${users.map(u => row([esc(u.email), esc(u.name), day(u.created_at), u.paid_until && new Date(u.paid_until) > new Date() ? status(u.status) : '<span class="muted">אין</span>'])).join('')}</table>` : '<span class="muted">עוד אף אחד</span>'}</div>
 <h2>עדכונים אחרונים מסאמיט</h2><div class="box">${events.length ? events.map(e => `<details><summary>${day(e.received_at)} · ${e.matched ? 'שויך' : '<span class="warn">לא שויך</span>'}</summary><pre>${esc(e.body)}</pre></details>`).join('') : '<span class="muted">עוד לא הגיע אף עדכון</span>'}</div>
 `);
     return send(res, 200, html);

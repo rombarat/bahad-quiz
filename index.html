@@ -282,6 +282,12 @@ a.big[aria-disabled="true"]{opacity:.45;pointer-events:none}
 .bd-list li.gap{justify-content:center;color:var(--muted);padding:0}
 .rk{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:900 .95rem var(--display);background:var(--line);color:var(--muted);font-variant-numeric:tabular-nums}
 .rk.r0{background:var(--gold);color:#5a3d00}.rk.r1{background:#c9ced6;color:#3c434d}.rk.r2{background:#d99a62;color:#4a2a0e}
+.rk.medal{background:none;width:34px;height:34px;font-size:1.75rem;line-height:1}
+.bd-top{margin:4px 0 0;text-align:center;font:900 1.55rem var(--display);letter-spacing:-.01em}
+.bd-top span{display:inline-block;margin-inline-end:6px}
+.bd-all{width:100%}
+.bd-full{overflow:auto;max-height:min(62dvh,560px);text-align:right;margin:0 -6px;padding:2px 6px}
+.bd-full .bd-list li.me{scroll-margin:60px}
 .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .nm b{font:700 1rem var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nm small{color:var(--muted);font-size:.8rem}
@@ -957,7 +963,8 @@ function drawBoard(){
     <p class="bd-note">${store.get('bq-pjoin',null)?'<b>הוזמנת לקבוצה של חברים!</b> כתוב שם כדי להצטרף אליה.':'כתוב שם כדי להיכנס לטבלה ולראות איפה כולם נמצאים.'}</p>
     <form class="bd-join" id="joinForm"><input id="joinName" maxlength="20" placeholder="השם שלך" autocomplete="nickname" required><button class="big" type="submit">הצטרף</button></form>
     <button class="link" id="haveCode">כבר משחק בטלפון או במחשב אחר? יש לי קוד</button>
-    ${rows(BOARD||[],5)}`;
+    ${topBlock(BOARD||[])}`;
+    wireAll(BOARD||[],'טבלת המובילים');
     $('#haveCode').onclick=()=>codeModal();
     $('#joinForm').onsubmit=async e=>{e.preventDefault();const n=$('#joinName').value.trim();if(!n)return;ME={...ACCT,name:n.slice(0,20)};store.set('bq-me',ME);SFX.unlock();await syncMe();toast('ברוך הבא לטבלה, '+ME.name+'!');
       const pj=store.get('bq-pjoin',null);if(pj){store.set('bq-pjoin',null);try{await doJoinGroup(pj)}catch(err){toast(GERR[err.message]||'ההצטרפות לקבוצה נכשלה')}}};
@@ -969,11 +976,11 @@ function drawBoard(){
   if(r>0){const ahead=b[r-1],gap=ahead.xp-(me?me.xp:0)+1;chase=`<p class="bd-chase">עוד <b>${gap} XP</b> כדי לעקוף את <b>${esc(ahead.name)}</b></p>`}
   else if(r===0&&b.length>1)chase=`<p class="bd-chase lead">אתה במקום הראשון! ${esc(b[1].name)} במרחק ${b[0].xp-b[1].xp} XP</p>`;
   const lonely=inG&&GBOARD&&b.length<2?'<p class="bd-note">בינתיים רק אתה כאן. הזמן חברים כדי להתחרות!</p>':'';
-  el.innerHTML=`<div class="bd-head"><b>${inG?esc(g.name):'טבלת המובילים'}</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button><button class="icon-btn bd-refresh" id="bdRefresh" aria-label="רענון הטבלה" title="רענון"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span></div>${tabs}${chase}${lonely}${inG&&!GBOARD?'<p class="bd-note">טוען...</p>':rows(b,inG?30:8)}
+  el.innerHTML=`<div class="bd-head"><b>${inG?esc(g.name):'טבלת המובילים'}</b><span>${b.length} משתתפים<button class="link" id="rename">שינוי שם</button><button class="icon-btn bd-refresh" id="bdRefresh" aria-label="רענון הטבלה" title="רענון"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span></div>${tabs}${chase}${lonely}${inG&&!GBOARD?'<p class="bd-note">טוען...</p>':topBlock(b)}
     ${inG?`<div class="bd-sync"><button class="big chat-btn${unread(GROUPS.find(x=>x.code===BSEL))?' new':''}" id="gChat">💬 צ׳אט הקבוצה</button><button class="big ghost" id="gInvite">הזמנת חברים</button><button class="link" id="gLeave">יציאה מהקבוצה</button></div>`
       :`<div class="bd-sync"><button class="big ghost" id="linkDev">סנכרון מכשיר</button><button class="link" id="haveCode2">יש לי קוד ממכשיר אחר</button></div>`}`;
   el.querySelectorAll('.bd-tab[data-b]').forEach(t=>t.onclick=()=>{if(t.dataset.b!==BSEL)selBoard(t.dataset.b)});
-  $('#bdRefresh').onclick=refreshBoard;
+  $('#bdRefresh').onclick=refreshBoard;wireAll(b,inG?g.name:'טבלת המובילים');
   $('#gNew').onclick=groupModal;
   if(inG){$('#gInvite').onclick=()=>inviteModal(g);$('#gChat').onclick=()=>chatModal(g);
     $('#gLeave').onclick=async()=>{const x=$('#gLeave');if(x.dataset.sure!=='1'){x.dataset.sure='1';x.textContent='בטוח? לחיצה נוספת יוצאת';return}
@@ -981,13 +988,20 @@ function drawBoard(){
   else{$('#linkDev').onclick=linkModal;$('#haveCode2').onclick=()=>codeModal()}
   $('#rename').onclick=()=>{const m=modal(`<form id="rnForm" class="rd" style="flex-direction:column"><h3>שינוי שם</h3><input id="rnName" maxlength="20" value="${esc(ME.name)}" required><button class="big" type="submit">שמור</button><button class="big ghost" type="button" id="rnCancel">ביטול</button></form>`);$('#rnName').focus();$('#rnCancel').onclick=()=>m.remove();$('#rnForm').onsubmit=e=>{e.preventDefault();const n=$('#rnName').value.trim();if(n){ME.name=n.slice(0,20);store.set('bq-me',ME);syncMe()}m.remove()}};
 }
+const MEDAL=['🥇','🥈','🥉'],TOPN=5;
+// "חמשת המובילים" heading, the top 5, and a button that opens everyone in a window
+const topBlock=b=>`<h2 class="bd-top"><span aria-hidden="true">🏆</span>חמשת המובילים</h2>${rows(b,TOPN)}${b.length>TOPN?`<button class="big ghost bd-all" id="bdAll">לטבלה המלאה · ${b.length} משתתפים</button>`:''}`;
+function wireAll(b,title){const x=$('#bdAll');if(x)x.onclick=()=>fullBoard(b,title)}
+function fullBoard(b,title){SFX.tap();
+  const m=modal(`<h3>${esc(title)}</h3><p>${b.length} משתתפים</p><div class="bd-full">${rows(b,Infinity)}</div><button class="big ghost" id="fbClose">סגירה</button>`);
+  $('#fbClose').onclick=()=>m.remove();const me=m.querySelector('li.me');if(me)me.scrollIntoView({block:'center'})}
 function rows(b,max){
   if(!b.length)return '<p class="bd-note">עוד אין משתתפים. תהיה הראשון!</p>';
   const r=ME?rankOf(b,ME.id):-1;let idx=[...Array(Math.min(max,b.length)).keys()];
-  if(r>=max)idx=[...idx.slice(0,max-2),-1,r-1,r].filter((x,i,a)=>a.indexOf(x)===i);
+  if(r>=max)idx=[...idx,-1,r];
   const top=Math.max(1,b[0].xp);
   return '<ol class="bd-list">'+idx.map(i=>{if(i===-1)return '<li class="gap">···</li>';const p=b[i],mine=ME&&p.id===ME.id;
-    return `<li class="${mine?'me':''}"><span class="rk ${i<3?'r'+i:''}">${i+1}</span><span class="nm"><b>${esc(p.name)}${mine?' (אתה)':''}</b><small>${stageLabel(p)} · ${p.correct} נכונות</small><i class="bd-bar"><i style="width:${p.xp/top*100}%"></i></i></span><span class="sc">${p.xp}<small>XP</small></span></li>`}).join('')+'</ol>';
+    return `<li class="${mine?'me':''}">${i<3?`<span class="rk medal" role="img" aria-label="מקום ${i+1}">${MEDAL[i]}</span>`:`<span class="rk">${i+1}</span>`}<span class="nm"><b>${esc(p.name)}${mine?' (אתה)':''}</b><small>${stageLabel(p)} · ${p.correct} נכונות</small><i class="bd-bar"><i style="width:${p.xp/top*100}%"></i></i></span><span class="sc">${p.xp}<small>XP</small></span></li>`}).join('')+'</ol>';
 }
 let boardTimer=0;
 function pollBoard(on){clearInterval(boardTimer);if(on){loadBoard();boardTimer=setInterval(()=>{if(!document.hidden)loadBoard()},30000)}}

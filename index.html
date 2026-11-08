@@ -337,6 +337,95 @@ a.big[aria-disabled="true"]{opacity:.45;pointer-events:none}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:35}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 body{margin:0}
+
+/* ---------- DUEL ---------- */
+.duel-cta{display:flex;align-items:center;gap:12px;width:100%;text-align:right;border:0;border-radius:18px;padding:14px 16px;color:#fff;
+  background:linear-gradient(115deg,#d9443a 0%,#b3306f 48%,#3b5fc4 100%);box-shadow:0 4px 0 #6b2350;font-family:var(--display)}
+.duel-cta:active{transform:translateY(4px);box-shadow:none}
+.duel-cta .sw{font-size:2rem;line-height:1;animation:clash 2.4s ease-in-out infinite}
+.duel-cta b{display:block;font:900 1.15rem var(--display)}
+.duel-cta small{display:block;font:600 .88rem var(--body);opacity:.92}
+.duel-cta .go{margin-inline-start:auto;background:rgba(255,255,255,.2);border-radius:12px;padding:6px 12px;font:800 .95rem var(--display);white-space:nowrap}
+@keyframes clash{0%,70%,100%{transform:rotate(0)}76%{transform:rotate(-18deg) scale(1.15)}84%{transform:rotate(12deg) scale(1.15)}92%{transform:rotate(0) scale(1)}}
+.dz{display:flex;flex-direction:column;gap:12px;text-align:right}
+.dz label{font:700 .92rem var(--display);color:var(--muted)}
+.dz input{width:100%;box-sizing:border-box;border:2px solid var(--line);border-radius:14px;padding:12px 14px;font:700 1.05rem var(--body);background:var(--bg);color:var(--fg)}
+.dz input.dcode{text-align:center;letter-spacing:.3em;direction:ltr;text-transform:uppercase;font:900 1.4rem var(--display)}
+.dz .segs{display:flex;gap:6px;flex-wrap:wrap}
+.dz .segs .seg{flex:1;padding:8px 6px}
+.dz .note{font-size:.85rem;color:var(--muted);margin:0}
+.dz hr{border:0;border-top:2px dashed var(--line);margin:4px 0;width:100%}
+
+#duel{background:radial-gradient(120% 60% at 50% 0%,color-mix(in srgb,#3b5fc4 14%,var(--bg)) 0%,var(--bg) 70%)}
+.d-top{display:flex;align-items:center;gap:8px;padding-top:max(10px,env(safe-area-inset-top,0px))}
+.d-top .rnd{flex:1;text-align:center;font:800 .95rem var(--display);color:var(--muted)}
+.d-score{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch;margin-top:6px}
+.dp{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--surface);border:2px solid var(--line);border-bottom-width:4px;border-radius:18px;padding:8px 6px;min-width:0}
+.dp.me{border-color:#3b82c4}.dp.opp{border-color:#d9443a}
+.dp .av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font:900 1.15rem var(--display)}
+.dp.me .av{background:linear-gradient(135deg,#5aa0e0,#2f6fd6)}.dp.opp .av{background:linear-gradient(135deg,#f07a6e,#c2433a)}
+.dp .nm{font:800 .95rem var(--display);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dp .pt{font:900 1.5rem/1 var(--display);font-variant-numeric:tabular-nums}
+.dp .pips{display:flex;gap:4px;min-height:10px}
+.dp .pips i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dp .pips i.on{background:var(--gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 35%,transparent)}
+.dp .st{position:absolute;top:-11px;left:0;right:0;margin:auto;width:max-content;background:var(--fg);color:var(--bg);font:800 .72rem var(--display);padding:2px 8px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .2s}
+.dp .st.on{opacity:1;animation:bump .35s}
+.dp .gain{position:absolute;left:50%;top:-6px;font:900 1.1rem var(--display);color:var(--good);opacity:0}
+.dp .gain.on{animation:floatup 1.4s ease-out forwards}
+.d-vs{align-self:center;font:900 1.1rem var(--display);color:var(--muted)}
+.d-timer{position:relative;height:14px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:12px}
+.d-timer i{position:absolute;inset:0;inset-inline-end:auto;width:100%;background:var(--good);border-radius:999px;transition:background .3s}
+.d-timer.warn i{background:var(--fire)}.d-timer.hot i{background:var(--bad)}
+.d-sec{text-align:center;font:900 1.05rem var(--display);font-variant-numeric:tabular-nums;color:var(--muted);margin-top:4px;min-height:1.4em}
+.d-sec.hot{color:var(--bad);animation:bump .5s infinite}
+.d-body{flex:1;overflow-y:auto;padding-block:10px 24px;display:flex;flex-direction:column;gap:14px}
+.d-body h2{font:800 1.35rem/1.35 var(--display);margin:0;text-wrap:balance}
+.d-body .qimg{display:block;width:100%;max-width:280px;max-height:28dvh;object-fit:contain;margin-inline:auto;border-radius:14px;border:2px solid var(--line);background:#fff}
+.d-body .opt{position:relative}
+.d-body .opt.locked{border-color:var(--sel);background:var(--sel-soft)}
+.d-body .opt.right{border-color:var(--good);background:var(--good-soft)}
+.d-body .opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.d-body .opt .tags{margin-inline-start:auto;display:flex;gap:4px}
+.d-body .opt .tags b{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font:900 .8rem var(--display)}
+.d-body .opt .tags b.me{background:#2f6fd6}.d-body .opt .tags b.opp{background:#c2433a}
+.d-body .why{margin:0;color:var(--muted);font-size:.95rem}
+.lockbar{background:var(--bad);color:#fff;text-align:center;font:900 1.05rem var(--display);border-radius:14px;padding:8px;animation:lockin .3s ease-out}
+@keyframes lockin{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+.d-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+.d-center h2{font:900 1.6rem var(--display)}
+.d-center p{margin:0;color:var(--muted)}
+.d-dots i{display:inline-block;width:10px;height:10px;margin:0 4px;border-radius:50%;background:var(--accent);animation:dots 1.2s infinite}
+.d-dots i:nth-child(2){animation-delay:.2s}.d-dots i:nth-child(3){animation-delay:.4s}
+@keyframes dots{0%,80%,100%{transform:scale(.5);opacity:.4}40%{transform:scale(1);opacity:1}}
+.d-res{font:900 2.4rem var(--display);margin:0;animation:drop .7s cubic-bezier(.2,1.6,.4,1)}
+.d-res.win{color:var(--gold);text-shadow:0 3px 0 var(--fire-deep)}.d-res.lose{color:var(--bad)}.d-res.draw{color:var(--sel)}
+.d-big{font-size:4.5rem;line-height:1;animation:drop .7s cubic-bezier(.2,1.6,.4,1)}
+.d-tbl{width:100%;border-collapse:collapse;font:700 1rem var(--display)}
+.d-tbl th,.d-tbl td{padding:8px;border-bottom:2px solid var(--line);text-align:center}
+.d-tbl td.w{color:var(--good)}
+.d-actions{display:flex;flex-direction:column;gap:10px;width:100%}
+.d-invite{background:var(--gold);color:#3a2a00;border-radius:16px;padding:12px;font:800 1rem var(--display);display:flex;flex-direction:column;gap:8px;animation:drop .6s cubic-bezier(.2,1.6,.4,1)}
+
+/* the "VS" entrance */
+.vs{position:fixed;inset:0;z-index:50;display:grid;place-items:center;overflow:hidden;background:#0d1020}
+.vs .half{position:absolute;top:0;bottom:0;width:62%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff}
+.vs .half.me{right:0;background:linear-gradient(160deg,#2f6fd6,#18306b);clip-path:polygon(18% 0,100% 0,100% 100%,0 100%);animation:inR .55s cubic-bezier(.2,1.3,.4,1) both}
+.vs .half.opp{left:0;background:linear-gradient(200deg,#d9443a,#6b1b16);clip-path:polygon(0 0,100% 0,82% 100%,0 100%);animation:inL .55s cubic-bezier(.2,1.3,.4,1) .12s both}
+.vs .half .av{width:84px;height:84px;border-radius:50%;background:rgba(255,255,255,.18);border:4px solid #fff;display:grid;place-items:center;font:900 2.4rem var(--display)}
+.vs .half b{font:900 1.5rem var(--display);max-width:80%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vs .half.me{justify-content:flex-start;padding:24dvh 0 0 30%;box-sizing:border-box}.vs .half.opp{justify-content:flex-end;padding:0 30% 30dvh 0;box-sizing:border-box}
+.vs .mark{position:relative;z-index:2;font:900 5rem/1 var(--display);color:#fff;font-style:italic;text-shadow:0 0 30px #f5c33b,0 6px 0 #c87a00;animation:slam .5s cubic-bezier(.3,1.8,.5,1) .55s both}
+.vs.shake{animation:shake .4s .95s}
+.vs .cnt{position:absolute;bottom:14%;z-index:2;font:900 4rem var(--display);color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.35)}
+.vs .cnt b{display:inline-block;animation:pop .8s ease-out both}
+.vs .meta{position:absolute;top:max(18px,env(safe-area-inset-top,0px));z-index:2;color:#fff;font:800 1rem var(--display);opacity:.85;animation:rise .4s .8s both}
+@keyframes inR{from{transform:translateX(105%)}to{transform:none}}
+@keyframes inL{from{transform:translateX(-105%)}to{transform:none}}
+@keyframes slam{from{transform:scale(5) rotate(-25deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translate(-8px,4px)}40%{transform:translate(7px,-5px)}60%{transform:translate(-5px,3px)}80%{transform:translate(4px,-2px)}}
+@keyframes pop{0%{transform:scale(2.4);opacity:0}30%{transform:scale(1);opacity:1}100%{transform:scale(.9);opacity:.9}}
+@media (prefers-reduced-motion: reduce){.vs .half,.vs .mark,.vs.shake,.vs .cnt b,.duel-cta .sw{animation:none!important}}
 </style>
 
 </head>
@@ -376,6 +465,7 @@ body{margin:0}
           <button class="seg" id="len20" data-n="20" aria-pressed="false">20 · ~10 דק׳</button>
         </div>
       </div>
+      <button class="duel-cta" id="duelGo" type="button"><span class="sw" aria-hidden="true">⚔️</span><span><b>דו־קרב ראש בראש</b><small>מזמינים חבר עם קוד ומתחרים בזמן אמת</small></span><span class="go">לקרב</span></button>
       <div class="tabs" role="tablist" aria-label="סוג תרגול">
         <button class="tab" role="tab" id="tabPath" aria-controls="panePath" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5"/></svg>מסלול למידה</button>
         <button class="tab" role="tab" id="tabTopics" aria-controls="paneTopics" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>לפי נושא</button>
@@ -434,6 +524,24 @@ body{margin:0}
       </div>
       <div class="review" id="review"></div>
     </div>
+  </section>
+  <!-- DUEL -->
+  <section id="duel" class="screen" hidden>
+    <div class="inner d-top">
+      <button class="icon-btn" id="dQuit" aria-label="יציאה מהדו־קרב"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <span class="rnd" id="dRnd">דו־קרב</span>
+      <button class="icon-btn snd" aria-label="השתק צלילים"></button>
+    </div>
+    <div class="inner">
+      <div class="d-score">
+        <div class="dp me" id="dp-me"><span class="st">🔒 נעלת</span><span class="av"></span><span class="nm"></span><span class="pt">0</span><span class="pips"></span><span class="gain"></span></div>
+        <span class="d-vs">VS</span>
+        <div class="dp opp" id="dp-opp"><span class="st">🔒 נעל</span><span class="av"></span><span class="nm"></span><span class="pt">0</span><span class="pips"></span><span class="gain"></span></div>
+      </div>
+      <div class="d-timer" id="dTimer" hidden><i></i></div>
+      <div class="d-sec" id="dSec" aria-live="polite"></div>
+    </div>
+    <div class="inner d-body" id="dBody"></div>
   </section>
 </div>
 <canvas id="fx"></canvas>
@@ -737,7 +845,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostnam
 $('#reset').onclick=()=>{const m=document.createElement('div');m.className='modal';m.innerHTML='<div class="box"><h3>לאפס את ההתקדמות?</h3><p>כל השאלות יסומנו שוב כחדשות.</p><button class="big no" id="doReset">איפוס</button><button class="big ghost" id="noReset">ביטול</button></div>';document.body.appendChild(m);$('#noReset').focus();$('#noReset').onclick=()=>m.remove();$('#doReset').onclick=()=>{DONE.clear();saveDone();PATH={done:[]};savePath();m.remove();drawHome()};m.onclick=e=>{if(e.target===m)m.remove()}};
 function drawLen(){$$('.seg').forEach(s=>s.setAttribute('aria-pressed',+s.dataset.n===LEN))}
 $$('.seg').forEach(s=>s.onclick=()=>{LEN=+s.dataset.n;store.set('bq-len',LEN);drawLen();drawPath();SFX.tap()});
-function show(id){['home','lesson','done'].forEach(s=>$('#'+s).hidden=s!==id);pollBoard(id==='home');if(id==='home'){drawHome();const c=TAB==='path'&&$('.node.cur');if(c)requestAnimationFrame(()=>c.scrollIntoView({block:'center'}))}}
+function show(id){['home','lesson','done','duel'].forEach(s=>$('#'+s).hidden=s!==id);pollBoard(id==='home');if(id==='home'){drawHome();const c=TAB==='path'&&$('.node.cur');if(c)requestAnimationFrame(()=>c.scrollIntoView({block:'center'}))}}
 
 /* ---------- PATH ---------- */
 const PER=5; // learn rounds per stage, then a review
@@ -1365,6 +1473,225 @@ else if(ME)pullMe().then(syncMe);
       ME={...ACCT,name:n.slice(0,20)};store.set('bq-me',ME);SFX.unlock();await syncMe();
       try{await doJoinGroup(code);m.remove()}catch(err){b.disabled=false;toast(GERR[err.message]||'ההצטרפות לקבוצה נכשלה')}};
   })})();
+
+/* ---------- DUEL (head to head, /api/duel) ---------- */
+// One player opens a duel and shares the code; the other joins. The server keeps the clock and the score:
+// 30 seconds a question, and once one player locks an answer the other has 5 seconds left.
+// This client polls the duel's state and draws it; tapping an option locks it at once.
+const DAPI='/api/duel';
+let DUEL=null,DS=null,dOff=0,dPollT=0,dRaf=0,dKey='',dLocking=-1,dLastSec=-1,dVsShown='',dDoneFx='';
+const dName=()=>(ME&&ME.name)||store.get('bq-duel-name','');
+async function dCall(body,code){
+  const t0=Date.now();
+  const r=await fetch(DAPI+(code?'?code='+code:''),{method:body?'POST':'GET',cache:'no-store',headers:{'X-Acct':ACCT.id+'.'+ACCT.secret,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
+  const j=await r.json().catch(()=>({}));
+  if(j&&j.now)dOff=j.now-(t0+Date.now())/2;
+  if(!r.ok){const e=new Error(j.error||r.status);e.status=r.status;e.state=j.state;throw e}
+  return j;
+}
+const dNow=()=>Date.now()+dOff;
+const DERR={'own duel':'זה הדו־קרב שלך. שלח את הקוד לחבר','taken':'מישהו אחר כבר הצטרף לדו־קרב הזה','expired':'פג תוקף ההזמנה. בקש מחבר לפתוח דו־קרב חדש','not found':'לא מצאנו דו־קרב עם הקוד הזה','name required':'צריך לכתוב שם'};
+const dErr=e=>DERR[e&&e.message]||'משהו השתבש, נסה שוב';
+const fmtCfg=c=>`${c.len} שאלות ${c.rounds>1?'בכל סבב · הטוב משלושה':'· סבב אחד'}`;
+
+// the home button: open a duel, or join one with a code
+function duelMenu(prefill){
+  SFX.tap();
+  let len=store.get('bq-duel-len',10),rounds=store.get('bq-duel-rounds',1);
+  const segs=(name,vals,cur,lab)=>`<div class="segs" role="group" aria-label="${lab}">${vals.map(([v,t])=>`<button type="button" class="seg" data-${name}="${v}" aria-pressed="${v===cur}">${t}</button>`).join('')}</div>`;
+  const m=modal(`<div class="dz"><h3 style="text-align:center">⚔️ דו־קרב ראש בראש</h3>
+    <label for="dzName">השם שלך</label><input id="dzName" maxlength="20" placeholder="השם שלך" autocomplete="nickname" value="${esc(dName())}">
+    <label>שאלות בכל סבב</label>${segs('len',[[5,'5'],[10,'10'],[15,'15'],[20,'20']],len,'שאלות בכל סבב')}
+    <label>פורמט</label>${segs('rounds',[[1,'סבב אחד'],[3,'הטוב משלושה']],rounds,'פורמט')}
+    <p class="note">30 שניות לכל שאלה. מי שנועל תשובה ראשון משאיר ליריב 5 שניות. שאלות ${MODE_NAME[MODE]}${locked()?', מתוך השאלות החינמיות':''}.</p>
+    <button class="big" type="button" id="dzNew">פתיחת דו־קרב</button>
+    <hr><label for="dzCode">יש לך קוד מחבר?</label>
+    <form class="rd" id="dzJoin"><input id="dzCode" class="dcode" maxlength="5" placeholder="קוד" autocomplete="off" value="${esc(prefill||'')}"><button class="big" type="submit" style="width:auto">הצטרפות</button></form>
+    <button class="big ghost" type="button" id="dzX">ביטול</button></div>`);
+  m.querySelectorAll('[data-len]').forEach(b=>b.onclick=()=>{len=+b.dataset.len;SFX.select();m.querySelectorAll('[data-len]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+  m.querySelectorAll('[data-rounds]').forEach(b=>b.onclick=()=>{rounds=+b.dataset.rounds;SFX.select();m.querySelectorAll('[data-rounds]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+  const nm=()=>{const n=$('#dzName').value.trim().slice(0,20);if(!n){$('#dzName').focus();toast('צריך לכתוב שם');return ''}store.set('bq-duel-name',n);return n};
+  $('#dzX').onclick=()=>m.remove();
+  $('#dzNew').onclick=async()=>{const n=nm();if(!n)return;const b=$('#dzNew');b.disabled=true;store.set('bq-duel-len',len);store.set('bq-duel-rounds',rounds);
+    try{const r=await dCall({action:'create',name:n,len,rounds,mode:MODE});m.remove();openDuel(r.code)}catch(e){b.disabled=false;toast(dErr(e))}};
+  $('#dzJoin').onsubmit=async e=>{e.preventDefault();const n=nm();if(!n)return;const c=$('#dzCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(c.length!==5){toast('הקוד הוא 5 תווים');return}const b=$('#dzJoin .big');b.disabled=true;
+    try{await dCall({action:'join',code:c,name:n});m.remove();openDuel(c)}catch(err){b.disabled=false;toast(dErr(err))}};
+}
+// an invitation link /?duel=CODE
+async function duelInvite(code){
+  let j;try{j=await dCall(null,code)}catch(e){toast(dErr(e));return}
+  if(!j.invite){openDuel(code);return}
+  if(j.invite.mine){openDuel(code);return}
+  if(!j.invite.open){toast(DERR.expired);return}
+  const m=modal(`<div class="dz" style="text-align:center"><div class="d-big">⚔️</div><h3>${esc(j.invite.host)} מזמין אותך לדו־קרב!</h3><p>${fmtCfg(j.invite.cfg)}</p>
+    <input id="diName" maxlength="20" placeholder="השם שלך" autocomplete="nickname" value="${esc(dName())}">
+    <button class="big" type="button" id="diGo">יאללה, לקרב!</button><button class="big ghost" type="button" id="diX">לא עכשיו</button></div>`);
+  $('#diX').onclick=()=>m.remove();
+  $('#diGo').onclick=async()=>{const n=$('#diName').value.trim().slice(0,20);if(!n){toast('צריך לכתוב שם');return}store.set('bq-duel-name',n);
+    const b=$('#diGo');b.disabled=true;try{await dCall({action:'join',code,name:n});m.remove();openDuel(code)}catch(e){b.disabled=false;toast(dErr(e))}};
+}
+
+function openDuel(code){
+  DUEL=code;DS=null;dKey='';dVsShown='';dDoneFx='';dLocking=-1;store.set('bq-duel',{code,at:Date.now()});
+  ac();show('duel');$('#dBody').innerHTML='<div class="d-center"><div class="d-dots"><i></i><i></i><i></i></div></div>';
+  $('#dRnd').textContent='דו־קרב';dPoll();if(!dRaf)dRaf=requestAnimationFrame(dTick);
+}
+function closeDuel(){DUEL=null;DS=null;clearTimeout(dPollT);cancelAnimationFrame(dRaf);dRaf=0;$$('.vs').forEach(x=>x.remove());store.set('bq-duel',null);show('home')}
+async function dPoll(){
+  clearTimeout(dPollT);const code=DUEL;if(!code)return;
+  try{const s=await dCall(null,code);if(DUEL!==code)return;dApply(s)}
+  catch(e){if(DUEL!==code)return;if(e.status===404||e.status===403){toast('הדו־קרב הזה כבר לא קיים');closeDuel();return}}
+  if(DUEL!==code)return;
+  const ph=DS&&DS.phase,end=ph==='done'||ph==='left';
+  let wait=ph==='wait'?1500:end?2500:700;
+  // poll right when a timer runs out, so the next phase shows without delay
+  const due=DS&&(DS.deadline||DS.until);if(due&&!end){const ms=due-dNow();if(ms>0&&ms<wait)wait=ms+60}
+  dPollT=setTimeout(dPoll,Math.max(120,wait));
+}
+function dApply(s){
+  const prev=DS;DS=s;
+  if(s.phase==='done'||s.phase==='left')store.set('bq-duel',null);
+  if(s.phase==='intro'||(s.phase==='q'&&s.i===0&&!dVsShown&&dNow()-s.qStart<1500))dVs();
+  const key=s.phase+':'+(s.i??'')+':'+(s.r??'');
+  if(key!==dKey){dKey=key;dLocking=-1;dRender(prev)}else dUpdate(prev);
+  dScore(prev);
+}
+const ini=n=>esc((n||'?').trim().charAt(0)||'?');
+function dScore(prev){
+  const s=DS;if(!s)return;
+  const R=s.cfg.rounds,pts=s.pts||(s.rounds.length?{me:s.rounds[s.rounds.length-1].me,opp:s.rounds[s.rounds.length-1].opp}:{me:0,opp:0});
+  const pips=n=>R>1?Array.from({length:2},(_,k)=>`<i class="${k<n?'on':''}"></i>`).join(''):'';
+  for(const w of ['me','opp']){const el=$('#dp-'+w);
+    el.querySelector('.av').innerHTML=ini(s.names[w]);el.querySelector('.nm').textContent=s.names[w]||'…';
+    el.querySelector('.pt').textContent=pts[w];el.querySelector('.pips').innerHTML=pips(s.wins[w]);}
+  const st=$('#dp-opp .st');st.classList.toggle('on',s.phase==='q'&&s.oppLocked);
+  const sm=$('#dp-me .st');sm.classList.toggle('on',s.phase==='q'&&s.mine>=0);
+  const qn=s.i!==undefined?s.k+1:0;
+  $('#dRnd').textContent=s.phase==='wait'?'מחכים ליריב':s.phase==='break'?`סוף סבב ${s.r+1}`:s.phase==='intro'?'מתחילים!':s.phase==='done'||s.phase==='left'?'סוף הדו־קרב':R>1?`סבב ${(s.r??0)+1} · שאלה ${qn||'-'}/${s.cfg.len}`:`שאלה ${qn||'-'}/${s.cfg.len}`;
+}
+function gain(w,n){const g=$('#dp-'+w+' .gain');g.textContent='+'+n;g.classList.remove('on');void g.offsetWidth;g.classList.add('on')}
+
+function dRender(prev){
+  const s=DS,b=$('#dBody');$('#dTimer').hidden=!(s.phase==='q');$('#dSec').textContent='';
+  if(s.phase==='wait'){
+    const url=location.origin+'/?duel='+s.code,txt=`${s.names.me} מזמין אותך לדו־קרב ראש בראש בהשביל לבה״ד! ⚔️ ${fmtCfg(s.cfg)}. היכנסו בקישור, או באפליקציה: דו־קרב ← קוד ${s.code}`;
+    b.innerHTML=`<div class="d-center"><div class="d-big">⚔️</div><h2>הדו־קרב מוכן</h2><p>שלח לחבר את הקוד או את הקישור. ברגע שהוא מצטרף, מתחילים.</p>
+      <div class="code" style="width:100%;box-sizing:border-box">${esc(s.code)}</div><p>${fmtCfg(s.cfg)}</p>
+      <div class="d-actions"><button class="big" id="dShare">${navigator.share?'שליחה לחבר':'העתקת הקישור'}</button></div>
+      <p>מחכים ליריב <span class="d-dots"><i></i><i></i><i></i></span></p></div>`;
+    $('#dShare').onclick=async()=>{const c=$('#dShare');
+      if(navigator.share){try{await navigator.share({title:'דו־קרב בהשביל לבה״ד',text:txt,url});return}catch(e){if(e&&e.name==='AbortError')return}}
+      try{await navigator.clipboard.writeText(txt+' '+url);c.textContent='הקישור הועתק';SFX.select()}catch(e){c.textContent=url}};
+    return;
+  }
+  if(s.phase==='intro'){b.innerHTML='<div class="d-center"><div class="d-big">⚔️</div><h2>מתחילים!</h2></div>';return}
+  if(s.phase==='q'||s.phase==='reveal'){
+    const q=s.q,rev=s.phase==='reveal';
+    b.innerHTML=`<div id="dLock"></div><div class="kicker"><span>${esc(q.c)}</span></div><h2>${esc(q.q)}</h2>${q.img?`<img class="qimg" src="${esc(q.img)}" alt="תמונה לשאלה">`:''}
+      <div class="opts">${q.o.map((o,k)=>`<button class="opt" data-k="${k}"><kbd>${k+1}</kbd><span>${esc(o)}</span><span class="tags"></span></button>`).join('')}</div>
+      <p class="why" id="dWhy" hidden></p>`;
+    $$('#dBody .opt').forEach(x=>x.onclick=()=>dLock(+x.dataset.k));
+    if(!rev){dLastSec=-1;SFX.rise()}
+    dUpdate(prev,true);
+    return;
+  }
+  if(s.phase==='break'){
+    const r=s.rounds[s.rounds.length-1],w=r.win;
+    b.innerHTML=`<div class="d-center"><div class="d-big">${w==='me'?'🏆':w==='opp'?'😤':'🤝'}</div><h2>${w==='me'?`ניצחת בסבב ${s.r+1}!`:w==='opp'?`${esc(s.names.opp)} לקח את סבב ${s.r+1}`:`תיקו בסבב ${s.r+1}`}</h2>
+      <p>${r.me} : ${r.opp}</p><p>הסבב הבא מתחיל בעוד <b id="dNext"></b></p></div>`;
+    if(w==='me'){SFX.unlock();const c=$('#dp-me').getBoundingClientRect();burst(c.left+c.width/2,c.top+c.height/2,40,9)}else SFX.no();
+    return;
+  }
+  if(s.phase==='done'||s.phase==='left')dEnd();
+}
+// what changes within a phase: my lock, the opponent's lock, the reveal marks
+function dUpdate(prev,fresh){
+  const s=DS;if(s.phase==='done'||s.phase==='left'){if(dDoneFx!==s.phase+s.next)dEnd();return}
+  if(s.phase!=='q'&&s.phase!=='reveal')return;
+  const rev=s.phase==='reveal',mine=dLocking>=0?dLocking:s.mine;
+  $$('#dBody .opt').forEach(x=>{const k=+x.dataset.k;x.disabled=rev||mine>=0;
+    x.classList.toggle('locked',!rev&&k===mine);
+    x.classList.toggle('right',rev&&k===s.q.a);x.classList.toggle('wrong',rev&&k===s.choice.me&&k!==s.q.a);
+    x.querySelector('.tags').innerHTML=rev?(k===s.choice.me?`<b class="me">${ini(s.names.me)}</b>`:'')+(k===s.choice.opp?`<b class="opp">${ini(s.names.opp)}</b>`:''):(k===mine?'🔒':'')});
+  const lk=$('#dLock');
+  if(!rev&&s.oppLocked&&mine<0){if(!lk.innerHTML){lk.innerHTML=`<div class="lockbar">⚡ ${esc(s.names.opp)} נעל תשובה! נשארו 5 שניות</div>`;alarm();buzz([60,40,60])}}
+  else if(!rev&&s.oppLocked&&mine>=0)lk.innerHTML='';
+  if(!rev&&prev&&prev.phase==='q'&&prev.i===s.i&&!prev.oppLocked&&s.oppLocked&&mine>=0)SFX.tick(3);
+  if(rev&&(fresh||!prev||prev.phase!=='reveal')){
+    const w=$('#dWhy');w.hidden=!s.q.e;w.textContent=s.q.e;
+    if(s.got.me)SFX.ok(1);else SFX.no();
+    if(s.got.me)gain('me',s.got.me);if(s.got.opp)gain('opp',s.got.opp);
+    $('#dSec').textContent=s.choice.me<0?'⏰ לא הספקת לענות':s.got.me?'✔️ נכון!':'✖️ לא נכון';
+  }
+}
+async function dLock(k){
+  const s=DS;if(!s||s.phase!=='q'||s.mine>=0||dLocking>=0)return;
+  dLocking=k;SFX.select();buzz(30);dUpdate(s);
+  try{const r=await dCall({action:'answer',code:DUEL,i:s.i,choice:k});if(DUEL)dApply(r)}
+  catch(e){dLocking=-1;if(e.state)dApply(e.state);toast('הזמן לשאלה הזו נגמר')}
+}
+function dTick(){
+  dRaf=requestAnimationFrame(dTick);const s=DS;if(!s||!DUEL)return;const t=dNow();
+  if(s.phase==='q'){
+    const left=Math.max(0,s.deadline-t),bar=$('#dTimer');
+    bar.querySelector('i').style.width=(Math.max(0,(s.deadline-t))/(s.deadline-s.qStart)*100)+'%';
+    bar.classList.toggle('warn',left<10000);bar.classList.toggle('hot',left<=5000);
+    const sec=Math.ceil(left/1000),el=$('#dSec');el.textContent=sec+' שניות';el.classList.toggle('hot',left<=5000);
+    if(sec!==dLastSec){if(sec<=5&&sec>0&&dLastSec!==-1)SFX.tick(sec);dLastSec=sec}
+  }else $('#dSec').classList.remove('hot');
+  if(s.phase==='break'&&$('#dNext'))$('#dNext').textContent=Math.max(0,Math.ceil((s.until-t)/1000))+' שניות';
+  const cnt=$('.vs .cnt');if(cnt&&s.until){const n=Math.ceil((s.until-t)/1000);const v=n>3?'':n>0?String(n):'!';if(cnt.dataset.n!==v){cnt.dataset.n=v;cnt.innerHTML=v?`<b>${v==='!'?'קדימה!':v}</b>`:'';if(v&&v!=='!')SFX.tick(n);if(v==='!')SFX.rise()}}
+}
+// the entrance: both players slide in, "VS" slams down, then 3-2-1
+function dVs(){
+  const s=DS;if(dVsShown===s.code)return;dVsShown=s.code;
+  const el=document.createElement('div');el.className='vs shake';el.setAttribute('role','presentation');
+  el.innerHTML=`<div class="meta">${fmtCfg(s.cfg)}</div><div class="half me"><div class="av">${ini(s.names.me)}</div><b>${esc(s.names.me)}</b></div>
+    <div class="half opp"><div class="av">${ini(s.names.opp)}</div><b>${esc(s.names.opp)}</b></div><div class="mark">VS</div><div class="cnt"></div>`;
+  document.body.appendChild(el);
+  kickIn();
+  const end=Math.max(1800,(s.until||dNow())-dNow());
+  setTimeout(()=>{el.style.transition='opacity .35s';el.style.opacity='0';setTimeout(()=>el.remove(),380)},end);
+}
+function alarm(){if(!ac()||muted)return;[0,.16,.32].forEach(t=>voice(988,t,{type:'square',vol:.07,dec:.09,rev:.1}))}
+function kickIn(){if(!ac()||muted)return;riser(0,.5,.2);kick(.55,1.1);crash(.55,.3,1.6);clap(.55,.4)}
+function dEnd(){
+  const s=DS,tag=s.phase+s.next;dDoneFx=tag;$('#dTimer').hidden=true;$('#dSec').textContent='';
+  const res=s.result,title=s.phase==='left'?(res==='win'?`${esc(s.names.opp)} עזב. ניצחת!`:'יצאת מהדו־קרב'):res==='win'?'ניצחת!':res==='lose'?`${esc(s.names.opp)} ניצח`:'תיקו!';
+  const rows=s.rounds.map((r,k)=>`<tr><td>${s.cfg.rounds>1?'סבב '+(k+1):'ניקוד'}</td><td class="${r.win==='me'?'w':''}">${r.me}</td><td class="${r.win==='opp'?'w':''}">${r.opp}</td></tr>`).join('');
+  const right=s.history.filter(h=>h.me>0).length;
+  const fromOpp=s.next&&!store.get('bq-duel-mine-'+s.next,0);
+  $('#dBody').innerHTML=`<div class="d-center"><div class="d-big">${res==='win'?'🏆':res==='lose'?'💪':'🤝'}</div><p class="d-res ${res}">${title}</p>
+    ${rows?`<table class="d-tbl"><tr><th></th><th>${esc(s.names.me)}</th><th>${esc(s.names.opp)}</th></tr>${rows}</table>`:''}
+    <p>ענית נכון על ${right} מתוך ${s.history.length} שאלות</p>
+    ${fromOpp?`<div class="d-invite">${esc(s.names.opp)} מזמין אותך לדו־קרב חוזר!<button class="big" id="dJoinNext">הצטרפות</button></div>`:''}
+    <div class="d-actions">${fromOpp?'':`<button class="big" id="dAgain">${s.next?'לדו־קרב החוזר':'דו־קרב חוזר'}</button>`}<button class="big ghost" id="dHome">חזרה לבית</button></div></div>`;
+  $('#dHome').onclick=()=>{SFX.tap();closeDuel()};
+  if($('#dAgain'))$('#dAgain').onclick=async()=>{const b=$('#dAgain');b.disabled=true;
+    try{const r=await dCall({action:'rematch',code:DUEL});const j=await dCall(null,r.code);
+      if(j.invite&&!j.invite.mine)await dCall({action:'join',code:r.code,name:dName()||s.names.me});else store.set('bq-duel-mine-'+r.code,1);
+      openDuel(r.code)}catch(e){b.disabled=false;toast(dErr(e))}};
+  if($('#dJoinNext'))$('#dJoinNext').onclick=async()=>{const b=$('#dJoinNext');b.disabled=true;
+    try{await dCall({action:'join',code:s.next,name:dName()||s.names.me});openDuel(s.next)}catch(e){b.disabled=false;toast(dErr(e))}};
+  if(tag.startsWith('done')||tag.startsWith('left')){if(!dEnd.fx||dEnd.fx!==s.code){dEnd.fx=s.code;
+    if(res==='win'){SFX.win(true);buzz([80,60,80,60,160]);for(let i=0;i<4;i++)setTimeout(()=>burst(innerWidth*(.2+Math.random()*.6),innerHeight*.35,60,12),i*250)}
+    else if(res==='lose')SFX.no();else SFX.unlock()}}
+}
+$('#duelGo').onclick=()=>duelMenu();
+document.addEventListener('keydown',e=>{if($('.modal')||$('#duel').hidden)return;const k={'1':0,'2':1,'3':2,'4':3}[e.key];if(k!==undefined)dLock(k)});
+$('#dQuit').onclick=()=>{
+  const s=DS;if(!s||s.phase==='done'||s.phase==='left'){closeDuel();return}
+  if(s.phase==='wait'){dCall({action:'leave',code:DUEL}).catch(()=>{});closeDuel();return}
+  const m=modal(`<h3>לצאת מהדו־קרב?</h3><p>היציאה נחשבת הפסד.</p><button class="big" type="button" id="dqStay">להמשיך לשחק</button><button class="big ghost" type="button" id="dqGo">יציאה</button>`);
+  $('#dqStay').onclick=()=>m.remove();
+  $('#dqGo').onclick=()=>{m.remove();dCall({action:'leave',code:DUEL}).catch(()=>{});closeDuel()};
+};
+// invitation link /?duel=CODE, or back to a duel that was running when the app closed
+(()=>{const q=new URLSearchParams(location.search).get('duel');
+  if(q){history.replaceState(null,'',location.pathname);const c=q.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length===5)duelInvite(c);return}
+  const d=store.get('bq-duel',null);if(d&&d.code&&Date.now()-d.at<3*3600e3)dCall(null,d.code).then(s=>{if(!s.invite&&s.phase!=='done'&&s.phase!=='left')openDuel(d.code);else store.set('bq-duel',null)}).catch(()=>store.set('bq-duel',null));
+})();
 </script>
 </body>
 </html>

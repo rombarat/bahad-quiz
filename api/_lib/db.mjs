@@ -74,6 +74,29 @@ const SCHEMA = [
      body text not null,
      created bigint not null)`,
   `create index if not exists group_messages_code on group_messages (code, id)`,
+  // head-to-head duels: one row per duel, one row per locked answer (the primary key makes each lock final)
+  `create table if not exists duels (
+     code text primary key,
+     host text not null,
+     host_hash text not null,
+     host_name text not null,
+     host_full boolean not null default false,
+     guest text,
+     guest_hash text,
+     guest_name text,
+     cfg jsonb not null,
+     qs jsonb,
+     start bigint,
+     left_by text,
+     next_code text,
+     created bigint not null)`,
+  `create table if not exists duel_answers (
+     code text not null,
+     qi integer not null,
+     player text not null,
+     choice integer not null,
+     at bigint not null,
+     primary key (code, qi, player))`,
   // raw webhook bodies, kept so a payment that didn't match anyone can be checked and assigned by hand
   `create table if not exists webhook_events (
      id bigserial primary key,

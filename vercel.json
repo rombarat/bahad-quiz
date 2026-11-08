@@ -2,6 +2,9 @@
   "functions": {
     "api/questions.mjs": {
       "includeFiles": "api/_data/**"
+    },
+    "api/duel.mjs": {
+      "includeFiles": "{api/_data/**,index.html}"
     }
   },
   "crons": [

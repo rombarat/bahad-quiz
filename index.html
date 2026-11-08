@@ -549,7 +549,8 @@ body{margin:0}
 <script>
 // [מספר קבוע, נושא, שאלה, תשובה נכונה, מסיחים מופרדים ב-|, הסבר]
 // 100 שאלות חינמיות. שאר השאלות מגיעות מהשרת (/api/questions) למנויים ולחברים.
-const QTOTAL=1813; const CAT_N={"מורשת":300,"אזרחות":106,"ציונות":262,"שואה":114,"מדינה":501,"נשק":156,"עזרה ראשונה":120,"קשר":91,"תחקיר":50,"גאוגרפיה":51,"המנון":24,"טופוגרפיה":38}; const PREP_MAX=448; const CAT_NM={"prep":{"מורשת":52,"אזרחות":18,"ציונות":63,"שואה":24,"מדינה":88,"נשק":56,"עזרה ראשונה":35,"קשר":27,"תחקיר":30,"גאוגרפיה":31,"המנון":24},"bahad":{"נשק":100,"מורשת":248,"ציונות":199,"שואה":90,"אזרחות":88,"מדינה":413,"גאוגרפיה":20,"עזרה ראשונה":85,"קשר":64,"תחקיר":20,"טופוגרפיה":38}};
+// QTOTAL: one past the highest question id (ids are permanent; saved progress refers to them). QCOUNT: how many questions there are.
+const QTOTAL=1813; const QCOUNT=1162; const CAT_N={"מורשת":192,"אזרחות":87,"ציונות":174,"שואה":84,"מדינה":257,"נשק":98,"עזרה ראשונה":76,"קשר":47,"תחקיר":34,"גאוגרפיה":51,"המנון":24,"טופוגרפיה":38}; const PREP_MAX=448; const CAT_NM={"prep":{"מורשת":52,"אזרחות":18,"ציונות":63,"שואה":24,"מדינה":88,"נשק":56,"עזרה ראשונה":35,"קשר":27,"תחקיר":30,"גאוגרפיה":31,"המנון":24},"bahad":{"נשק":42,"מורשת":140,"ציונות":111,"שואה":60,"אזרחות":69,"מדינה":169,"גאוגרפיה":20,"עזרה ראשונה":41,"קשר":20,"תחקיר":4,"טופוגרפיה":38}};
 const FREE_Q=[
 [0,'מורשת','לפי מה נקבע חג החנוכה?','חז״ל','התורה|הכנסת|הרבנות הראשית','חנוכה אינו מופיע בתורה. חז״ל קבעו אותו כחג מדרבנן לזכר ניצחון החשמונאים ונס פך השמן.'],
 [1,'מורשת','מי כתב את השולחן ערוך?','רבי יוסף קארו','הרמב״ם|רש״י|רבי יהודה הנשיא','רבי יוסף קארו חיבר את השולחן ערוך בצפת במאה ה-16. הרמב״ם כתב את ״משנה תורה״, ורבי יהודה הנשיא חתם את המשנה.'],
@@ -888,12 +889,12 @@ function drawPath(){
     const label=t==='review'?'בחינה חוזרת':'סבב '+(i%(PER+1)+1);
     h+=`<div class="node-wrap" style="--x:${x}px">${state==='cur'?`<span class="tip${t==='review'?' review':''}">${t==='review'?'בחינה חוזרת!':'התחל'}</span>`:''}<button class="node ${t} ${state}" id="n${i}" data-i="${i}" ${state==='lock'?'disabled':''} aria-label="${label}${state==='done'?' (הושלם)':''}">${icon}${r?`<span class="acc">${r.acc}%</span>`:''}</button></div>`;
   }
-  if(finished)h+=locked()?`<p class="path-end">סיימת את ${FREE_Q.filter(r=>inMode(r[0])).length} השאלות החינמיות של ${MODE_NAME[MODE]}! <button class="big" id="pathUnlock">לפתוח את כל ${QTOTAL.toLocaleString('en')} השאלות</button></p>`:'<p class="path-end">סיימת את כל המסלול! אפשר להמשיך בתרגול חופשי, או לאפס ולהתחיל מחדש.</p>';
+  if(finished)h+=locked()?`<p class="path-end">סיימת את ${FREE_Q.filter(r=>inMode(r[0])).length} השאלות החינמיות של ${MODE_NAME[MODE]}! <button class="big" id="pathUnlock">לפתוח את כל ${QCOUNT.toLocaleString('en')} השאלות</button></p>`:'<p class="path-end">סיימת את כל המסלול! אפשר להמשיך בתרגול חופשי, או לאפס ולהתחיל מחדש.</p>';
   $('#path').innerHTML=h;
   if($('#pathUnlock'))$('#pathUnlock').onclick=()=>openPaywall();
 }
 $('#path').onclick=e=>{const b=e.target.closest('.node');if(!b||b.disabled)return;const i=+b.dataset.i;
-  if(i<PATH.done.length){const r=PATH.done[i],qs=r.qs.map(j=>D[j]).filter(Boolean);if(!qs.length){openPaywall();return}startLesson(shuffle(qs),null,{replay:true,t:r.t,i});return}
+  if(i<PATH.done.length){const r=PATH.done[i],qs=r.qs.map(j=>D[j]).filter(Boolean);if(!qs.length){if(locked())openPaywall();else toast('השאלות של הסבב הזה כבר לא במאגר');return}startLesson(shuffle(qs),null,{replay:true,t:r.t,i});return}
   startPathRound()};
 function startPathRound(){const r=buildRound();if(r)r.qs=r.qs.filter(j=>D[j]);if(!r||!r.qs.length){if(locked())openPaywall();else show('home');return}startLesson(r.qs.map(j=>D[j]),null,{t:r.t,i:PATH.done.length,qs:r.qs})}
 
@@ -1225,7 +1226,7 @@ async function shareApp(text,btn){
   try{await navigator.clipboard.writeText(text+' '+url);done();if(btn)btn.textContent='הקישור הועתק ✓';toast('הקישור הועתק. הדבק אותו בוואטסאפ 💚')}
   catch(e){if(btn)btn.textContent=url}
 }
-const SHARE_TXT=`מתכוננים לבה״ד? אני מתרגל ב"השביל לבה״ד": ${QTOTAL.toLocaleString('en')} שאלות עם הסבר אחרי כל תשובה, טבלת מובילים וקבוצות עם חברים. נסו:`;
+const SHARE_TXT=`מתכוננים לבה״ד? אני מתרגל ב"השביל לבה״ד": ${QCOUNT.toLocaleString('en')} שאלות עם הסבר אחרי כל תשובה, טבלת מובילים וקבוצות עם חברים. נסו:`;
 // every few finished rounds, at most every two days (and not right after sharing), ask to share
 function maybeSharePopup(){
   const n=store.get('bq-rounds-n',0)+1;store.set('bq-rounds-n',n);
@@ -1271,7 +1272,7 @@ function finish(){
   $('#review').innerHTML=w.length?'<h3>מה כדאי לחזור עליו</h3>'+w.map(x=>`<div class="rv"><strong>${esc(x.item[1])}</strong><span class="p">${esc(x.picked)}</span><span class="a">${esc(x.item[2])}</span><span class="w">${esc(x.item[4])}</span></div>`).join(''):'';
   setTimeout(()=>{SFX.win(perfect);buzz([30,60,30]);rain();const r=$('#trophy').getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,perfect?80:45,10,perfect?['#f5c33b','#ffe07a','#f2a01c','#fff']:null)},250);
   const sb=$('#shareRound');sb.textContent='📤 שיתוף עם חבר';
-  sb.onclick=()=>shareApp(`סיימתי סבב ב"השביל לבה״ד" עם ${acc}% דיוק 💪 מתכוננים לבה״ד? ${QTOTAL.toLocaleString('en')} שאלות עם הסברים:`,sb);
+  sb.onclick=()=>shareApp(`סיימתי סבב ב"השביל לבה״ד" עם ${acc}% דיוק 💪 מתכוננים לבה״ד? ${QCOUNT.toLocaleString('en')} שאלות עם הסברים:`,sb);
   maybeSharePopup();
   $('#again').focus({preventScroll:true});
 }
@@ -1330,7 +1331,7 @@ function untilTxt(end){
 function drawCountdown(el){
   const end=Date.parse(CFG.openUntil);
   el.hidden=false;el.className='access promo';
-  el.innerHTML=`<b>🎁 לקראת המבחנים: כל ${QTOTAL.toLocaleString('en')} השאלות פתוחות בחינם</b>
+  el.innerHTML=`<b>🎁 לקראת המבחנים: כל ${QCOUNT.toLocaleString('en')} השאלות פתוחות בחינם</b>
     <div class="cd" role="timer" aria-label="הזמן שנשאר"><span><b id="cdD">0</b><small>ימים</small></span><span><b id="cdH">00</b><small>שעות</small></span><span><b id="cdM">00</b><small>דקות</small></span><span><b id="cdS">00</b><small>שניות</small></span></div>
     <p class="pw-note">${untilTxt(end)}</p>`;
   const two=n=>String(n).padStart(2,'0');
@@ -1355,7 +1356,7 @@ function drawAccess(){
     if($('#accMng'))$('#accMng').onclick=manageSub;
     return}
   el.className='access';
-  el.innerHTML=`<div><b>יש לך גישה ל־${FREE_Q.length} מתוך ${QTOTAL.toLocaleString('en')} שאלות</b><p>${MONTHLY()?'מנוי פותח את כל השאלות ואת המסלול המלא':'תשלום אחד פותח את כל השאלות ואת המסלול המלא, לכל החיים'}</p></div><button class="big" id="accGo">לכל השאלות · ${priceTxt()} ${planTxt()}</button>${SIGNED&&payingRecently()?'<button class="link" id="accCheck">כבר שילמתי, לבדוק שוב</button>':''}`;
+  el.innerHTML=`<div><b>יש לך גישה ל־${FREE_Q.length} מתוך ${QCOUNT.toLocaleString('en')} שאלות</b><p>${MONTHLY()?'מנוי פותח את כל השאלות ואת המסלול המלא':'תשלום אחד פותח את כל השאלות ואת המסלול המלא, לכל החיים'}</p></div><button class="big" id="accGo">לכל השאלות · ${priceTxt()} ${planTxt()}</button>${SIGNED&&payingRecently()?'<button class="link" id="accCheck">כבר שילמתי, לבדוק שוב</button>':''}`;
   $('#accGo').onclick=()=>openPaywall();
   if($('#accCheck'))$('#accCheck').onclick=()=>checkPaid(true);
 }
@@ -1363,7 +1364,7 @@ const loadScript=src=>new Promise((ok,no)=>{const old=document.querySelector(`sc
   const s=old||document.createElement('script');s.src=src;s.async=true;s.onload=()=>{s.dataset.loaded=1;ok()};s.onerror=no;if(!old)document.head.appendChild(s)});
 async function openPaywall(errMsg){
   SFX.tap();
-  const m=modal(`<h3>כל ${QTOTAL.toLocaleString('en')} השאלות</h3>
+  const m=modal(`<h3>כל ${QCOUNT.toLocaleString('en')} השאלות</h3>
     <div class="pw-price">${priceTxt()} ${CFG&&CFG.launchUntil&&CFG.regularPrice>CFG.price?`<s class="pw-was">₪${Number(CFG.regularPrice).toFixed(2)}</s>`:''} <small>${MONTHLY()?'לחודש · ביטול בכל רגע':'תשלום אחד · גישה לכל החיים'}</small></div>
     ${launchTxt()?`<p class="pw-launch">🔥 ${launchTxt()}</p>`:''}
     <ul class="pw-list"><li>כל הנושאים, עם הסבר אחרי כל תשובה</li><li>מסלול הלמידה המלא ובחינות חוזרות</li><li>עובד בטלפון ובמחשב, גם בלי אינטרנט</li></ul>

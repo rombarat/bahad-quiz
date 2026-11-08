@@ -1,10 +1,10 @@
 // Service worker: makes the quiz installable and usable offline.
 // - The app page is fetched network-first, so a new deploy reaches users on their next open;
 //   when there is no connection the cached copy is served.
-// - Icons and the manifest are precached; Google Fonts are cached the first time they load.
+// - Icons, the manifest and the topography pictures are precached; Google Fonts are cached the first time they load.
 // - The leaderboard API (/api/) is never cached: it always goes to the network.
 // Bump VERSION when the list of precached files changes.
-const VERSION = 'v2'; // v2: new name and icon (השביל לבה״ד)
+const VERSION = 'v3'; // v3: topography pictures for the picture questions
 const APP = 'bahad-app-' + VERSION;
 const FONTS = 'bahad-fonts';
 const PRECACHE = [
@@ -16,6 +16,15 @@ const PRECACHE = [
   '/icons/maskable-512.png',
   '/icons/apple-touch-icon.png',
   '/icons/favicon-32.png',
+  '/img/topo/kipa_map.jpg',
+  '/img/topo/kipa_3d.jpg',
+  '/img/topo/kipa_smuya_map.jpg',
+  '/img/topo/ukaf_map.jpg',
+  '/img/topo/ukaf_3d.jpg',
+  '/img/topo/shluha_map.jpg',
+  '/img/topo/shluha_3d.jpg',
+  '/img/topo/gai_map.jpg',
+  '/img/topo/gai_3d.jpg',
 ];
 
 self.addEventListener('install', (e) => {

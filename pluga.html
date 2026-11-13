@@ -163,6 +163,12 @@ main{flex:1;padding-block:16px calc(96px + env(safe-area-inset-bottom,0px))}
 .notice p{white-space:pre-wrap;overflow-wrap:anywhere}
 .notice footer{display:flex;align-items:center;gap:8px;margin-top:6px;color:var(--muted);font-size:.82rem}
 .code{font:800 1.7rem var(--display);letter-spacing:.2em;direction:ltr;text-align:center;padding:10px;border-radius:12px;background:var(--bg);border:1.5px dashed var(--line-deep)}
+.role-call{display:flex;gap:6px;flex:none}
+.role-call a{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.role-call a.wa{background:var(--good-soft);color:var(--good)}
+.role-call svg.i{width:20px;height:20px}
+.role-t{font:800 .8rem var(--display);color:var(--accent);display:block;margin-bottom:1px}
+.phone{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
 .avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font:800 .95rem var(--display);flex:none;overflow:hidden}
 .avatar img{width:100%;height:100%;object-fit:cover}
 
@@ -225,6 +231,8 @@ textarea.inp{min-height:84px;resize:vertical}
 const DAY = 86400000, HOUR = 3600000;
 const KINDS = { lesson: 'שיעור', field: 'שטח ותרגילים', exam: 'בוחן', sport: 'כושר', formation: 'מסדר וטקסים', meal: 'ארוחה', free: 'זמן אישי', other: 'אחר' };
 const TASK_KINDS = { submit: 'הגשה', exam: 'בוחן', prep: 'הכנה', gear: 'ציוד', other: 'אחר' };
+const ROLE_GROUPS = { staff: 'סגל', cadets: 'תפקידי צוערים', other: 'אחר' };
+const ROLE_IDEAS = { staff: ['מ״פ', 'סמ״פ', 'רס״פ', 'מפקד צוות', 'קצין חינוך', 'ממ״ש', 'מש״קית ת״ש', 'חובש/ת', 'קצין רפואה'], cadets: ['צוער אחראי צוות', 'צוער תורן קבוע', 'אחראי ספורט', 'אחראי תרבות', 'נאמן נשק', 'אחראי ציוד', 'אחראי ת״ש', 'אחראי קשר'], other: [] };
 const ROLES = { admin: 'מנהל', editor: 'עורך', member: 'חבר' };
 const EVENT_IDEAS = ['מסדר בוקר', 'מד״ס', 'ארוחת בוקר', 'שיעור', 'ארוחת צהריים', 'זמן צוות', 'שיחת מ״פ', 'ארוחת ערב', 'ת״ש', 'מסדר לילה', 'ניווט', 'מטווח', 'תרגיל', 'בוחן'];
 const TASK_IDEAS = ['מערך שיעור', 'פקודת מבצע', 'סיכום שבוע', 'עבודת חקר', 'הכנה למתן שיעור', 'בוחן בר־אור', 'בוחן ידע', 'הכנת ציוד לשטח', 'משוב עמיתים'];
@@ -258,6 +266,8 @@ const ICON = {
   list: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>', users: '<circle cx="9" cy="8" r="3.500"/><path d="M2.500 20c.500-3.500 3-5.500 6.500-5.500s6 2 6.500 5.500"/><path d="M16 4.500a3.500 3.500 0 010 7M18.500 14.800c1.800.800 2.800 2.600 3 5.200"/>',
   plus: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', check: '<path d="M5 12.500l4.500 4.500L19 7.500"/>', prev: '<path d="M9 6l6 6-6 6"/>', next: '<path d="M15 6l-6 6 6 6"/>',
   share: '<path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>', pin: '<path d="M12 21v-7M7 14h10l-1.500-4V4h-7v6z"/>', wand: '<path d="M5 19L16 8M14 6l4 4M18 3v3M21 6h-3M6 4v2M7 5H5"/>',
+  phone: '<path d="M5 4h4l2 5-2.500 1.500a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/>',
+  chat: '<path d="M4 20l1.300-3.900A8 8 0 1112 20a8 8 0 01-4.100-1.100z"/>',
   pin2: '<path d="M12 21s7-6.200 7-11a7 7 0 10-14 0c0 4.800 7 11 7 11z"/><circle cx="12" cy="10" r="2.500"/>', back: '<path d="M5 12h14M13 6l6 6-6 6"/>', clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'
 };
 const ic = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
@@ -281,6 +291,7 @@ async function api(op, body = {}) {
 function setState(j) {
   if (!j || !('unit' in j)) return;
   S = j;
+  S.roles = S.roles || [];
   if (S.unit) {
     S.byId = new Map(S.members.map(m => [m.id, m]));
     try { localStorage.setItem('pl_state', JSON.stringify(j)); } catch {}
@@ -388,13 +399,13 @@ function render() {
   const t = today();
   UI.day = UI.day || t; UI.guardDay = UI.guardDay || guardKey(Date.now()); UI.dutyWeek = UI.dutyWeek || weekStart(t);
   const late = myTasks().filter(x => !isDone(x) && x.due && x.due < Date.now() + DAY).length;
-  const view = { today: viewToday, sched: viewSched, guard: viewGuard, duty: viewDuty, tasks: viewTasks, unit: viewUnit }[UI.tab]();
+  const view = { today: viewToday, sched: viewSched, guard: viewGuard, duty: viewDuty, tasks: viewTasks, unit: viewUnit, roles: viewRoles }[UI.tab]();
   const scroll = window.scrollY;
   $('#app').innerHTML = `
     <header class="top"><div class="wrap">
-      ${UI.tab === 'unit' ? `<button class="ibtn" data-act="tab" data-tab="today" aria-label="חזרה">${ic('back')}</button>` : ''}
-      <h1>${UI.tab === 'unit' ? 'הפלוגה' : esc(S.unit.name)}<small>${esc(dayLong(t))}</small></h1>
-      ${UI.tab === 'unit' ? '' : `<button class="ibtn" data-act="tab" data-tab="unit" aria-label="הפלוגה והגדרות">${ic('users')}</button>`}
+      ${UI.tab === 'unit' || UI.tab === 'roles' ? `<button class="ibtn" data-act="tab" data-tab="${UI.back || 'today'}" aria-label="חזרה">${ic('back')}</button>` : ''}
+      <h1>${UI.tab === 'unit' ? 'הפלוגה' : UI.tab === 'roles' ? 'תפקידים ואנשי קשר' : esc(S.unit.name)}<small>${esc(dayLong(t))}</small></h1>
+      ${UI.tab === 'unit' || UI.tab === 'roles' ? '' : `<button class="ibtn" data-act="tab" data-tab="roles" aria-label="תפקידים ואנשי קשר">${ic('phone')}</button><button class="ibtn" data-act="tab" data-tab="unit" aria-label="הפלוגה והגדרות">${ic('users')}</button>`}
     </div></header>
     <main><div class="wrap">${view.html}</div></main>
     ${view.fab ? `<button class="fab" data-act="${view.fab}" aria-label="הוספה">${ic('plus')}</button>` : ''}
@@ -571,6 +582,54 @@ function viewTasks() {
   return { html, fab: 'taskNew' };
 }
 
+/* ---------- roles: who fills which job, with a phone number ---------- */
+const telHref = p => 'tel:' + p.replace(/[^\d+]/g, '');
+// wa.me wants the international form: 050… → 97250…
+const waHref = p => { let d = p.replace(/\D/g, ''); if (d.startsWith('0')) d = '972' + d.slice(1); return 'https://wa.me/' + d; };
+function roleRow(r) {
+  return `<div class="row">
+    <button class="b" ${canEdit() ? `data-act="roleOpen" data-id="${r.id}"` : 'tabindex="-1"'} style="text-align:start;cursor:${canEdit() ? 'pointer' : 'default'}">
+      <span class="role-t">${esc(r.title)}${r.team ? ` · ${esc(r.team)}` : ''}</span>
+      <h3>${r.holder ? esc(r.holder) : '<span class="muted" style="font-weight:600">לא מאויש</span>'}</h3>
+      ${r.phone || r.notes ? `<p>${r.phone ? `<span class="phone">${esc(r.phone)}</span>` : ''}${r.phone && r.notes ? ' · ' : ''}${esc(r.notes)}</p>` : ''}</button>
+    ${r.phone ? `<span class="role-call"><a href="${esc(waHref(r.phone))}" target="_blank" rel="noopener" class="wa" aria-label="וואטסאפ ל${esc(r.holder || r.title)}">${ic('chat')}</a><a href="${esc(telHref(r.phone))}" aria-label="חיוג ל${esc(r.holder || r.title)}">${ic('phone')}</a></span>` : ''}</div>`;
+}
+function viewRoles() {
+  const q = (UI.roleQ || '').trim();
+  const list = S.roles.filter(r => !q || [r.title, r.holder, r.team, r.phone].some(x => x.includes(q)));
+  let html = S.roles.length > 6 ? `<input class="inp" id="roleQ" placeholder="חיפוש תפקיד או שם" value="${esc(UI.roleQ || '')}" autocomplete="off" style="margin-bottom:6px">` : '';
+  if (!S.roles.length) html += `<div class="card"><div class="empty"><b>עוד אין רשימת תפקידים</b>${canEdit() ? 'מוסיפים עם הפלוס: התפקיד, מי מאייש אותו ומספר טלפון. כולם בפלוגה יוכלו לחייג או לשלוח וואטסאפ בלחיצה.' : 'כשהרשימה תתפרסם היא תופיע כאן.'}</div></div>`;
+  else if (!list.length) html += `<div class="card"><div class="empty">לא נמצא תפקיד או שם כזה.</div></div>`;
+  for (const [g, label] of Object.entries(ROLE_GROUPS)) {
+    const rows = list.filter(r => r.grp === g);
+    if (!rows.length) continue;
+    // inside a group: company-wide roles first, then by team order
+    rows.sort((a, b) => (a.team ? 1 : 0) - (b.team ? 1 : 0) || S.unit.teams.indexOf(a.team) - S.unit.teams.indexOf(b.team));
+    html += `<div class="grp">${label} · ${rows.length}</div><div class="card rows">${rows.map(roleRow).join('')}</div>`;
+  }
+  if (S.roles.some(r => r.phone)) html += `<p class="hint" style="text-align:center;margin-top:14px">המספרים גלויים רק למי שבפלוגה.</p>`;
+  return { html, fab: canEdit() ? 'roleNew' : null };
+}
+function roleForm(r) {
+  const g = r ? r.grp : 'staff';
+  sheet({
+    title: r ? 'עריכת תפקיד' : 'תפקיד חדש',
+    body: `<label class="f">סוג<select class="inp" id="rGrp">${Object.entries(ROLE_GROUPS).map(([k, l]) => `<option value="${k}" ${g === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="f">תפקיד<input class="inp" id="rTitle" value="${esc(r ? r.title : '')}" maxlength="60" placeholder="למשל: קצין חינוך"></label>
+      ${r ? '' : `<div id="rIdeas">${ideas(ROLE_IDEAS[g], 'rTitle')}</div>`}
+      <label class="f">מי מאייש<input class="inp" id="rHolder" value="${esc(r ? r.holder : '')}" maxlength="60" list="rNames" placeholder="שם, אפשר עם דרגה"><datalist id="rNames">${activeMembers().map(m => `<option value="${esc(m.name)}">`).join('')}</datalist></label>
+      <label class="f">טלפון<input class="inp" id="rPhone" type="tel" inputmode="tel" dir="ltr" value="${esc(r ? r.phone : '')}" maxlength="20" placeholder="050-0000000"></label>
+      <label class="f">צוות<select class="inp" id="rTeam"><option value="">כל הפלוגה</option>${opts(S.unit.teams, r ? r.team : '')}</select></label>
+      <label class="f">הערה<input class="inp" id="rNotes" value="${esc(r ? r.notes : '')}" maxlength="300" placeholder="למשל: זמין עד 22:00"></label>`,
+    after: () => { const sel = $('#rGrp'), box = $('#rIdeas'); if (box) sel.onchange = () => { box.innerHTML = ideas(ROLE_IDEAS[sel.value], 'rTitle'); }; },
+    onOk: () => {
+      if (!val('rTitle')) return sheetErr('חסר שם תפקיד');
+      save('role.save', { id: r ? r.id : undefined, grp: val('rGrp'), title: val('rTitle'), holder: val('rHolder'), phone: val('rPhone'), team: val('rTeam'), notes: val('rNotes') });
+    },
+    onDel: r ? () => save('role.del', { id: r.id }, 'נמחק') : null
+  });
+}
+
 /* ---------- the company: people, code, settings ---------- */
 function viewUnit() {
   const u = S.unit, act = activeMembers();
@@ -580,6 +639,7 @@ function viewUnit() {
       <div class="code">${esc(u.code)}</div>
       <p class="hint">מי שמקבל את הקוד רואה את כל הלוח. שולחים אותו רק לקבוצת הפלוגה. אם הקוד דלף, מחליפים אותו והישן מפסיק לעבוד.</p>
       <div class="two"><button class="btn soft" data-act="invite">${ic('share')}שליחת הזמנה</button><button class="btn ghost" data-act="codeReset">החלפת קוד</button></div></div></section>`;
+  html += `<section class="sec"><div class="card"><button class="row" data-act="tab" data-tab="roles">${ic('phone')}<div class="b"><h3>תפקידים ואנשי קשר</h3><p>${S.roles.length ? plural(S.roles.length, 'תפקיד אחד', 'תפקידים') : 'מי מאייש כל תפקיד, עם טלפון'}</p></div>${ic('next')}</button></div></section>`;
   html += `<section class="sec"><div class="sec-h"><h2>אנשים (${act.length})</h2>${isAdmin() ? `<button class="link" data-act="rosterAdd">${ic('plus')}הוספת שמות</button>` : ''}</div>`;
   html += teams.map(t => {
     const list = act.filter(m => m.team === t || (!t && !u.teams.includes(m.team)));
@@ -832,7 +892,8 @@ function noticeForm(n) {
 /* ---------- actions ---------- */
 const byId = (arr, el) => arr.find(x => x.id === Number(el.dataset.id));
 const ACT = {
-  tab(el) { UI.tab = el.dataset.tab; render(); },
+  // the people and roles pages open from the header; their back arrow returns to the tab you came from
+  tab(el) { const t = el.dataset.tab; if ((t === 'unit' || t === 'roles') && UI.tab !== 'unit' && UI.tab !== 'roles') UI.back = UI.tab; UI.tab = t; render(); },
   schedDay(el) { UI.day = el.dataset.day; render(); },
   guardDay(el) { UI.guardDay = el.dataset.day; render(); },
   guardView(el) { UI.guardView = el.dataset.v; render(); },
@@ -884,6 +945,8 @@ const ACT = {
   genAgain: genPreview,
   guardShare() { share(guardText(UI.guardDay)); },
 
+  roleNew() { roleForm(null); },
+  roleOpen(el) { const r = byId(S.roles, el); if (r) roleForm(r); },
   noticeNew() { noticeForm(null); },
   noticeEdit(el) { const n = byId(S.notices, el); if (n) noticeForm(n); },
 
@@ -980,6 +1043,7 @@ document.addEventListener('click', e => {
   if (el && ACT[el.dataset.act]) ACT[el.dataset.act](el, e);
 });
 document.addEventListener('input', e => {
+  if (e.target.id === 'roleQ') { UI.roleQ = e.target.value; render(); const i = $('#roleQ'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); return; }
   if (e.target.id !== 'pickQ') return;
   const q = e.target.value.trim();
   document.querySelectorAll('.pick-row').forEach(r => { r.hidden = Boolean(q) && !r.dataset.name.includes(q); });

@@ -104,14 +104,15 @@ async function fullState(userId, user) {
   const { m, u } = ms;
   await syncIcs(u, false);
   const now = Date.now();
-  const [members, events, tasks, done, duties, shifts, notices] = await Promise.all([
+  const [members, events, tasks, done, duties, shifts, notices, roles] = await Promise.all([
     sql`select * from pl_members where unit_id = ${u.id} order by team, name`,
     sql`select * from pl_events where unit_id = ${u.id} and end_ts >= ${now - 14 * DAY} and start_ts <= ${now + 180 * DAY} order by start_ts limit 4000`,
     sql`select * from pl_tasks where unit_id = ${u.id} and (scope <> 'personal' or owner = ${m.id}) and (due is null or due >= ${now - 45 * DAY}) order by due nulls last, id limit 1000`,
     sql`select d.task_id, d.member_id from pl_task_done d join pl_tasks t on t.id = d.task_id where t.unit_id = ${u.id}`,
     sql`select * from pl_duties where unit_id = ${u.id} order by day, id limit 5000`,
     sql`select * from pl_shifts where unit_id = ${u.id} and end_ts >= ${now - 90 * DAY} order by start_ts, post limit 8000`,
-    sql`select * from pl_notices where unit_id = ${u.id} order by pinned desc, id desc limit 40`
+    sql`select * from pl_notices where unit_id = ${u.id} order by pinned desc, id desc limit 40`,
+    sql`select * from pl_roles where unit_id = ${u.id} order by id limit 300`
   ]);
   const doneBy = new Map();
   done.forEach(d => { const k = Number(d.task_id); if (!doneBy.has(k)) doneBy.set(k, []); doneBy.get(k).push(Number(d.member_id)); });
@@ -124,6 +125,7 @@ async function fullState(userId, user) {
     tasks: tasks.map(t => ({ id: Number(t.id), title: t.title, notes: t.notes, due: t.due == null ? null : Number(t.due), kind: t.kind, scope: t.scope, team: t.team, owner: t.owner == null ? null : Number(t.owner), done: doneBy.get(Number(t.id)) || [] })),
     duties: duties.map(d => ({ id: Number(d.id), day: d.day, type: d.type, notes: d.notes, members: d.member_ids })),
     shifts: shifts.map(s => ({ id: Number(s.id), post: s.post, start: Number(s.start_ts), end: Number(s.end_ts), members: s.member_ids })),
+    roles: roles.map(r => ({ id: Number(r.id), title: r.title, grp: r.grp, team: r.team, holder: r.holder, phone: r.phone, notes: r.notes })),
     notices: notices.map(n => ({ id: Number(n.id), body: n.body, pinned: n.pinned, by: n.created_by == null ? null : Number(n.created_by), at: Number(n.created) }))
   };
 }
@@ -362,6 +364,29 @@ const OPS = {
     if (to - from > 8 * DAY) bad('טווח גדול מדי');
     await sql`delete from pl_shifts where unit_id = ${u.id} and start_ts >= ${from} and start_ts < ${to}`;
   },
+
+  // ---- roles: who fills which job, and how to reach them ----
+  async 'role.save'({ b, u, edit }) {
+    edit();
+    const title = str(b.title, 60);
+    if (!title) bad('חסר שם תפקיד');
+    const grp = ['staff', 'cadets', 'other'].includes(b.grp) ? b.grp : 'staff';
+    const team = str(b.team, 30);
+    if (team && !u.teams.includes(team)) bad('הצוות לא קיים');
+    const holder = str(b.holder, 60), notes = str(b.notes, 300);
+    const phone = str(b.phone, 20);
+    if (phone && !/^\+?[0-9][0-9 -]{5,18}$/.test(phone)) bad('מספר הטלפון לא תקין');
+    const id = num(b.id);
+    if (id !== null) {
+      await sql`update pl_roles set title = ${title}, grp = ${grp}, team = ${team}, holder = ${holder}, phone = ${phone}, notes = ${notes} where id = ${id} and unit_id = ${u.id}`;
+      return;
+    }
+    const [c] = await sql`select count(*)::int as n from pl_roles where unit_id = ${u.id}`;
+    if (c.n >= 300) bad('יותר מדי תפקידים');
+    await sql`insert into pl_roles (unit_id, title, grp, team, holder, phone, notes, created)
+      values (${u.id}, ${title}, ${grp}, ${team}, ${holder}, ${phone}, ${notes}, ${Date.now()})`;
+  },
+  async 'role.del'({ b, u, edit }) { edit(); await sql`delete from pl_roles where id = ${num(b.id)} and unit_id = ${u.id}`; },
 
   // ---- notices ----
   async 'notice.save'({ b, m, u, edit }) {

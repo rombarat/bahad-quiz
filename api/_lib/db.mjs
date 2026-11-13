@@ -181,7 +181,19 @@ const SCHEMA = [
      pinned boolean not null default false,
      created_by bigint,
      created bigint not null)`,
-  `create index if not exists pl_notices_unit on pl_notices (unit_id, id)`
+  `create index if not exists pl_notices_unit on pl_notices (unit_id, id)`,
+  // who fills which role (staff and cadet roles), with a phone number; grp is 'staff', 'cadets' or 'other'
+  `create table if not exists pl_roles (
+     id bigserial primary key,
+     unit_id bigint not null,
+     title text not null,
+     grp text not null default 'staff',
+     team text not null default '',
+     holder text not null default '',
+     phone text not null default '',
+     notes text not null default '',
+     created bigint not null)`,
+  `create index if not exists pl_roles_unit on pl_roles (unit_id)`
 ];
 
 // Tagged-template query: await sql`select ... ${value}` → rows

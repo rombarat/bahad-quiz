@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>לוח הפלוגה</title>
-<meta name="description" content="לו״ז, תורנויות, שמירות ומשימות של הפלוגה בבה״ד 1, במקום אחד.">
+<meta name="description" content="לו״ז, תורנויות, משימות ואנשי קשר של הפלוגה בבה״ד 1, במקום אחד.">
 <meta name="robots" content="noindex">
 <link rel="manifest" href="/pluga.webmanifest">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
@@ -165,7 +165,7 @@ main{flex:1;padding-block:16px calc(96px + env(safe-area-inset-bottom,0px))}
 .code{font:800 1.7rem var(--display);letter-spacing:.2em;direction:ltr;text-align:center;padding:10px;border-radius:12px;background:var(--bg);border:1.5px dashed var(--line-deep)}
 .role-call{display:flex;gap:6px;flex:none}
 .role-call a{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
-.role-call a.wa{background:var(--good-soft);color:var(--good)}
+.role-call a.wa{background:#25d366;color:#fff}
 .role-call svg.i{width:20px;height:20px}
 .role-t{font:800 .8rem var(--display);color:var(--accent);display:block;margin-bottom:1px}
 .phone{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
@@ -271,6 +271,8 @@ const ICON = {
   pin2: '<path d="M12 21s7-6.200 7-11a7 7 0 10-14 0c0 4.800 7 11 7 11z"/><circle cx="12" cy="10" r="2.500"/>', back: '<path d="M5 12h14M13 6l6 6-6 6"/>', clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'
 };
 const ic = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+// WhatsApp's own logo (from Simple Icons), filled rather than outlined
+const WA_LOGO = `<svg viewBox="0 0 24 24" aria-hidden="true" width="22" height="22" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>`;
 
 function toast(msg, isBad) {
   const t = $('#toast');
@@ -336,7 +338,7 @@ function renderSignIn() {
     <div><h1>לוח הפלוגה</h1><p class="muted" style="margin-top:6px">כל מה שקורה בקורס, במקום אחד שכל הפלוגה רואה.</p></div>
     <ul>
       <li>${ic('cal')} הלו״ז היומי והשבועי</li>
-      <li>${ic('shield')} רשימות שמירה וטבלת צדק</li>
+      <li>${ic('phone')} תפקידים ואנשי קשר</li>
       <li>${ic('broom')} תורנויות לפי ימים</li>
       <li>${ic('list')} משימות ותאריכי הגשה</li>
     </ul>
@@ -392,11 +394,15 @@ function renderJoin() {
 }
 
 /* ---------- shell ---------- */
-const TABS = [['today', 'היום', 'home'], ['sched', 'לו״ז', 'cal'], ['guard', 'שמירות', 'shield'], ['duty', 'תורנויות', 'broom'], ['tasks', 'משימות', 'list']];
+const ALL_TABS = [['today', 'היום', 'home'], ['sched', 'לו״ז', 'cal'], ['guard', 'שמירות', 'shield'], ['duty', 'תורנויות', 'broom'], ['tasks', 'משימות', 'list']];
+// guard lists are off until the company's admin turns them on in the settings
+const guardOn = () => Boolean(S && S.unit && S.unit.showGuard);
+const tabs = () => ALL_TABS.filter(t => t[0] !== 'guard' || guardOn());
 function render() {
   if (!S) return renderSignIn();
   if (!S.unit) return renderJoin();
   const t = today();
+  if (UI.tab === 'guard' && !guardOn()) UI.tab = 'today';
   UI.day = UI.day || t; UI.guardDay = UI.guardDay || guardKey(Date.now()); UI.dutyWeek = UI.dutyWeek || weekStart(t);
   const late = myTasks().filter(x => !isDone(x) && x.due && x.due < Date.now() + DAY).length;
   const view = { today: viewToday, sched: viewSched, guard: viewGuard, duty: viewDuty, tasks: viewTasks, unit: viewUnit, roles: viewRoles }[UI.tab]();
@@ -409,7 +415,7 @@ function render() {
     </div></header>
     <main><div class="wrap">${view.html}</div></main>
     ${view.fab ? `<button class="fab" data-act="${view.fab}" aria-label="הוספה">${ic('plus')}</button>` : ''}
-    <nav class="nav"><div class="wrap">${TABS.map(([id, label, icon]) => `<button data-act="tab" data-tab="${id}" ${UI.tab === id ? 'aria-current="page"' : ''}>${ic(icon)}${label}${id === 'tasks' && late ? `<span class="dot">${late}</span>` : ''}</button>`).join('')}</div></nav>`;
+    <nav class="nav"><div class="wrap" style="grid-template-columns:repeat(${tabs().length},1fr)">${tabs().map(([id, label, icon]) => `<button data-act="tab" data-tab="${id}" ${UI.tab === id ? 'aria-current="page"' : ''}>${ic(icon)}${label}${id === 'tasks' && late ? `<span class="dot">${late}</span>` : ''}</button>`).join('')}</div></nav>`;
   if (render.last === UI.tab) window.scrollTo(0, scroll); else window.scrollTo(0, 0);
   render.last = UI.tab;
 }
@@ -452,10 +458,12 @@ function viewToday() {
   const hr = new Date().getHours();
   const greet = hr < 5 ? 'לילה טוב' : hr < 12 ? 'בוקר טוב' : hr < 17 ? 'צהריים טובים' : hr < 21 ? 'ערב טוב' : 'לילה טוב';
   const nextShift = S.shifts.find(s => mine(s.members) && s.end > now);
+  const nextDuty = S.duties.filter(d => mine(d.members) && d.day >= t).sort((a, b) => a.day < b.day ? -1 : 1)[0];
   let html = `<section class="hero"><h2>${greet}, ${esc(first)}</h2><p>${esc(dayLong(t))}${hebDate(now) ? ' · ' + esc(hebDate(now)) : ''}</p>
     <div class="hero-stats">
       <button data-act="tab" data-tab="sched"><b>${upcoming.length}</b><span>נשאר היום בלו״ז</span></button>
-      <button data-act="tab" data-tab="guard"><b>${nextShift ? (dk(nextShift.start) === t ? hm(nextShift.start) : dayRel(dk(nextShift.start))) : '—'}</b><span>השמירה שלי</span></button>
+      ${guardOn() ? `<button data-act="tab" data-tab="guard"><b>${nextShift ? (dk(nextShift.start) === t ? hm(nextShift.start) : dayRel(dk(nextShift.start))) : '—'}</b><span>השמירה שלי</span></button>`
+        : `<button data-act="tab" data-tab="duty"><b>${nextDuty ? dayRel(nextDuty.day) : '—'}</b><span>התורנות שלי</span></button>`}
       <button data-act="tab" data-tab="tasks"><b>${open.length}</b><span>משימות פתוחות</span></button>
     </div></section>`;
 
@@ -470,7 +478,7 @@ function viewToday() {
   html += `<section class="sec"><div class="sec-h"><h2>אצלי ב־48 השעות הקרובות</h2></div><div class="card rows">
     ${myShifts.map(s => `<div class="row">${ic('shield')}<div class="b"><h3>שמירה · ${esc(s.post)}</h3><p>${dayRel(dk(s.start))} ${hm(s.start)}–${hm(s.end)}${s.members.length > 1 ? ' · עם ' + s.members.filter(i => i !== S.me.id).map(i => esc(nameOf(i))).join(', ') : ''}</p></div></div>`).join('')}
     ${myDuties.map(d => `<div class="row">${ic('broom')}<div class="b"><h3>${esc(d.type)}</h3><p>${dayRel(d.day)}${d.notes ? ' · ' + esc(d.notes) : ''}</p></div></div>`).join('')}
-    ${!myShifts.length && !myDuties.length ? '<div class="empty">אין לך שמירות או תורנויות ביומיים הקרובים.</div>' : ''}</div></section>`;
+    ${!myShifts.length && !myDuties.length ? `<div class="empty">אין לך ${guardOn() ? 'שמירות או תורנויות' : 'תורנויות'} ביומיים הקרובים.</div>` : ''}</div></section>`;
 
   if (soon.length) html += `<section class="sec"><div class="sec-h"><h2>להגיש השבוע</h2><button class="link" data-act="tab" data-tab="tasks">כל המשימות</button></div><div class="card rows">${soon.slice(0, 5).map(taskRow).join('')}</div></section>`;
 
@@ -592,7 +600,7 @@ function roleRow(r) {
       <span class="role-t">${esc(r.title)}${r.team ? ` · ${esc(r.team)}` : ''}</span>
       <h3>${r.holder ? esc(r.holder) : '<span class="muted" style="font-weight:600">לא מאויש</span>'}</h3>
       ${r.phone || r.notes ? `<p>${r.phone ? `<span class="phone">${esc(r.phone)}</span>` : ''}${r.phone && r.notes ? ' · ' : ''}${esc(r.notes)}</p>` : ''}</button>
-    ${r.phone ? `<span class="role-call"><a href="${esc(waHref(r.phone))}" target="_blank" rel="noopener" class="wa" aria-label="וואטסאפ ל${esc(r.holder || r.title)}">${ic('chat')}</a><a href="${esc(telHref(r.phone))}" aria-label="חיוג ל${esc(r.holder || r.title)}">${ic('phone')}</a></span>` : ''}</div>`;
+    ${r.phone ? `<span class="role-call"><a href="${esc(waHref(r.phone))}" target="_blank" rel="noopener" class="wa" aria-label="וואטסאפ ל${esc(r.holder || r.title)}">${WA_LOGO}</a><a href="${esc(telHref(r.phone))}" aria-label="חיוג ל${esc(r.holder || r.title)}">${ic('phone')}</a></span>` : ''}</div>`;
 }
 function viewRoles() {
   const q = (UI.roleQ || '').trim();
@@ -649,8 +657,9 @@ function viewUnit() {
   if (isAdmin()) {
     const sync = u.icsUrl ? (u.icsErr ? `<span class="err">הסנכרון האחרון נכשל: ${esc(u.icsErr)}</span>` : u.icsAt ? `סונכרן ${dayRel(dk(u.icsAt))} ב־${hm(u.icsAt)}` : 'יסונכרן בטעינה הבאה') : 'לא מחובר';
     html += `<section class="sec"><div class="sec-h"><h2>הגדרות הפלוגה</h2></div><div class="card rows">
-      <button class="row" data-act="settings"><div class="b"><h3>שם, צוותים, עמדות וסוגי תורנות</h3><p>${u.teams.length} צוותים · ${u.posts.length} עמדות · ${u.dutyTypes.length} סוגי תורנות</p></div>${ic('next')}</button>
+      <button class="row" data-act="settings"><div class="b"><h3>שם, צוותים וסוגי תורנות</h3><p>${u.teams.length} צוותים · ${u.dutyTypes.length} סוגי תורנות</p></div>${ic('next')}</button>
       <button class="row" data-act="icsSet"><div class="b"><h3>חיבור יומן גוגל של הקורס</h3><p>${sync}</p></div>${ic('next')}</button>
+      <div class="row"><div class="b"><h3>רשימות שמירה</h3><p>${u.showGuard ? 'מוצגות לכל הפלוגה' : 'מוסתרות. מדליקים אחרי אישור המפקדים.'}</p></div><button class="btn sm ${u.showGuard ? 'soft' : 'ghost'}" data-act="showGuard">${u.showGuard ? 'מוצג' : 'מוסתר'}</button></div>
       <div class="row"><div class="b"><h3>עריכה פתוחה לכולם</h3><p>${u.openEdit ? 'כל חבר בפלוגה יכול להוסיף ולשנות' : 'רק מנהלים ועורכים מוסיפים ומשנים'}</p></div><button class="btn sm ${u.openEdit ? 'soft' : 'ghost'}" data-act="openEdit">${u.openEdit ? 'פתוח' : 'סגור'}</button></div></div></section>`;
   }
   html += `<section class="sec"><div class="card rows"><a class="row" href="/" style="text-decoration:none;color:inherit"><div class="b"><h3>השביל לבה״ד</h3><p>תרגול שאלות לקורס</p></div>${ic('next')}</a>
@@ -965,7 +974,7 @@ const ACT = {
       body: `<label class="f">שם מלא<input class="inp" id="mName" value="${esc(m.name)}" maxlength="60"></label>
         <label class="f">צוות<select class="inp" id="mTeam"><option value="">בלי צוות</option>${opts(S.unit.teams, m.team)}</select></label>
         <label class="f">הרשאה<select class="inp" id="mRole">${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${m.role === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
-        <span class="hint">חבר רואה הכול ומסמן משימות. עורך מוסיף ומשנה לו״ז, שמירות, תורנויות ומשימות. מנהל גם מנהל אנשים והגדרות.</span></label>
+        <span class="hint">חבר רואה הכול ומסמן משימות. עורך מוסיף ומשנה לו״ז, תורנויות, משימות ותפקידים. מנהל גם מנהל אנשים והגדרות.</span></label>
         ${m.linked ? '' : '<p class="hint">עוד לא נכנס ללוח. כשייכנס עם הקוד יוכל לבחור את השם הזה.</p>'}`,
       onOk: () => val('mName') ? save('member.save', { id: m.id, name: val('mName'), team: val('mTeam'), role: val('mRole') }) : sheetErr('חסר שם'),
       del: 'הסרה', onDel: m.id === S.me.id ? null : () => save('member.remove', { id: m.id }, 'הוסר')
@@ -974,7 +983,7 @@ const ACT = {
   rosterAdd() {
     sheet({
       title: 'הוספת שמות לרשימה',
-      body: `<p class="hint">מדביקים רשימת שמות, שם בכל שורה. כך אפשר לשבץ לשמירות ולתורנויות גם את מי שעוד לא נכנס ללוח. כשמישהו ייכנס עם הקוד, הוא יבחר את השם שלו.</p>
+      body: `<p class="hint">מדביקים רשימת שמות, שם בכל שורה. כך אפשר לשבץ לתורנויות גם את מי שעוד לא נכנס ללוח. כשמישהו ייכנס עם הקוד, הוא יבחר את השם שלו.</p>
         <label class="f">צוות<select class="inp" id="rTeam"><option value="">בלי צוות</option>${opts(S.unit.teams, '')}</select></label>
         <label class="f">שמות<textarea class="inp" id="rNames" style="min-height:180px" placeholder="ישראל ישראלי&#10;דנה כהן"></textarea></label>`,
       ok: 'הוספה',
@@ -987,7 +996,7 @@ const ACT = {
       title: 'הגדרות הפלוגה',
       body: `<label class="f">שם הפלוגה<input class="inp" id="uName" value="${esc(u.name)}" maxlength="60"></label>
         <label class="f">צוותים<span class="hint">שם בכל שורה</span><textarea class="inp" id="uTeams">${esc(u.teams.join('\n'))}</textarea></label>
-        <label class="f">עמדות שמירה<span class="hint">שם בכל שורה. בלי מיקומים מדויקים.</span><textarea class="inp" id="uPosts">${esc(u.posts.join('\n'))}</textarea></label>
+        <label class="f" ${u.showGuard ? '' : 'hidden'}>עמדות שמירה<span class="hint">שם בכל שורה. בלי מיקומים מדויקים.</span><textarea class="inp" id="uPosts">${esc(u.posts.join('\n'))}</textarea></label>
         <label class="f">סוגי תורנות<span class="hint">שם בכל שורה</span><textarea class="inp" id="uDuty" style="min-height:150px">${esc(u.dutyTypes.join('\n'))}</textarea></label>`,
       onOk: () => save('settings', { name: val('uName'), teams: lines('uTeams'), posts: lines('uPosts'), dutyTypes: lines('uDuty'), openEdit: u.openEdit, icsUrl: u.icsUrl })
     });
@@ -1007,8 +1016,9 @@ const ACT = {
     });
   },
   async icsSync() { closeSheet(); const j = await act('ics.sync'); if (j) toast(S.unit.icsErr ? 'הסנכרון נכשל: ' + S.unit.icsErr : 'היומן סונכרן', Boolean(S.unit.icsErr)); },
+  showGuard() { const u = S.unit; act('settings', { name: u.name, teams: u.teams, posts: u.posts, dutyTypes: u.dutyTypes, openEdit: u.openEdit, icsUrl: u.icsUrl, showGuard: !u.showGuard }, u.showGuard ? 'השמירות הוסתרו' : 'השמירות מוצגות'); },
   openEdit() { const u = S.unit; act('settings', { name: u.name, teams: u.teams, posts: u.posts, dutyTypes: u.dutyTypes, openEdit: !u.openEdit, icsUrl: u.icsUrl }); },
-  invite() { share(`הצטרפו ללוח של ${S.unit.name}: לו״ז, שמירות, תורנויות ומשימות.\n${location.origin}/pluga?code=${S.unit.code}\nקוד: ${S.unit.code}`); },
+  invite() { share(`הצטרפו ללוח של ${S.unit.name}: לו״ז, תורנויות, משימות ואנשי קשר.\n${location.origin}/pluga?code=${S.unit.code}\nקוד: ${S.unit.code}`); },
   codeReset(el) { if (!el.dataset.sure) { el.dataset.sure = 1; el.textContent = 'בטוח? הקוד הישן יפסיק לעבוד'; return; } act('code.reset', {}, 'הקוד הוחלף'); },
   leave(el) { if (!el.dataset.sure) { el.dataset.sure = 1; el.querySelector('h3').textContent = 'בטוח? לחיצה נוספת מוציאה אותך מהפלוגה'; return; } try { localStorage.removeItem('pl_state'); } catch {} UI.tab = 'today'; act('leave'); },
   async logout() {
@@ -1056,6 +1066,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && SHEET) clo
   // an invitation link carries the code; keep it across the Google sign-in
   try { if (q.get('code')) localStorage.setItem('pl_code', q.get('code').toUpperCase().slice(0, 6)); JOIN.code = localStorage.getItem('pl_code') || ''; } catch {}
   try { localStorage.removeItem('pl_back'); } catch {}
+  document.cookie = 'bq_back=; Path=/; Max-Age=0; SameSite=None; Secure';
   if (q.has('code') || q.has('login')) history.replaceState(null, '', '/pluga');
   try { const c = JSON.parse(localStorage.getItem('pl_state') || 'null'); if (c && c.unit) { setState(c); render(); } } catch {}
   try { CFG = await (await fetch('/api/config')).json(); } catch {}

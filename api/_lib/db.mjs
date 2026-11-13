@@ -193,7 +193,9 @@ const SCHEMA = [
      phone text not null default '',
      notes text not null default '',
      created bigint not null)`,
-  `create index if not exists pl_roles_unit on pl_roles (unit_id)`
+  `create index if not exists pl_roles_unit on pl_roles (unit_id)`,
+  // guard lists stay hidden until the company's admin turns them on
+  `alter table pl_units add column if not exists show_guard boolean not null default false`
 ];
 
 // Tagged-template query: await sql`select ... ${value}` → rows

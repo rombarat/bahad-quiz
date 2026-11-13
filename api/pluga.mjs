@@ -31,7 +31,7 @@ function ts(v, what) {
 }
 
 const unitOut = (u, admin) => ({
-  id: Number(u.id), name: u.name, teams: u.teams, dutyTypes: u.duty_types, posts: u.posts, openEdit: u.open_edit,
+  id: Number(u.id), name: u.name, teams: u.teams, dutyTypes: u.duty_types, posts: u.posts, openEdit: u.open_edit, showGuard: u.show_guard,
   ...(admin ? { code: u.code, icsUrl: u.ics_url || '', icsAt: Number(u.ics_at), icsErr: u.ics_err || '' } : { hasIcs: Boolean(u.ics_url) })
 });
 const memberOut = m => ({ id: Number(m.id), name: m.name, team: m.team, role: m.role, active: m.active, linked: m.user_id != null });
@@ -110,7 +110,8 @@ async function fullState(userId, user) {
     sql`select * from pl_tasks where unit_id = ${u.id} and (scope <> 'personal' or owner = ${m.id}) and (due is null or due >= ${now - 45 * DAY}) order by due nulls last, id limit 1000`,
     sql`select d.task_id, d.member_id from pl_task_done d join pl_tasks t on t.id = d.task_id where t.unit_id = ${u.id}`,
     sql`select * from pl_duties where unit_id = ${u.id} order by day, id limit 5000`,
-    sql`select * from pl_shifts where unit_id = ${u.id} and end_ts >= ${now - 90 * DAY} order by start_ts, post limit 8000`,
+    // while guard lists are hidden they are not sent at all
+    u.show_guard ? sql`select * from pl_shifts where unit_id = ${u.id} and end_ts >= ${now - 90 * DAY} order by start_ts, post limit 8000` : [],
     sql`select * from pl_notices where unit_id = ${u.id} order by pinned desc, id desc limit 40`,
     sql`select * from pl_roles where unit_id = ${u.id} order by id limit 300`
   ]);
@@ -129,6 +130,8 @@ async function fullState(userId, user) {
     notices: notices.map(n => ({ id: Number(n.id), body: n.body, pinned: n.pinned, by: n.created_by == null ? null : Number(n.created_by), at: Number(n.created) }))
   };
 }
+
+const guardOn = u => { if (!u.show_guard) bad('השמירות כבויות בפלוגה הזו', 403); };
 
 // ---- operations ----
 const OPS = {
@@ -229,6 +232,7 @@ const OPS = {
     const changed = icsUrl !== (u.ics_url || '');
     await sql`update pl_units set name = ${name}, teams = ${JSON.stringify(teams)}::jsonb, duty_types = ${JSON.stringify(dutyTypes)}::jsonb,
       posts = ${JSON.stringify(posts)}::jsonb, open_edit = ${Boolean(b.openEdit)}, ics_url = ${icsUrl || null},
+      show_guard = ${b.showGuard === undefined ? u.show_guard : Boolean(b.showGuard)},
       ics_at = ${changed ? 0 : Number(u.ics_at)} where id = ${u.id}`;
     if (changed && !icsUrl) await sql`delete from pl_events where unit_id = ${u.id} and source = 'ics'`;
   },
@@ -332,7 +336,7 @@ const OPS = {
 
   // ---- guard shifts ----
   async 'shift.save'({ b, u, edit }) {
-    edit();
+    edit(); guardOn(u);
     const post = str(b.post, 40);
     if (!post) bad('חסרה עמדה');
     const start = ts(b.start, 'התחלה'), end = ts(b.end, 'סיום');
@@ -342,10 +346,10 @@ const OPS = {
     if (id !== null) await sql`update pl_shifts set post = ${post}, start_ts = ${start}, end_ts = ${end}, member_ids = ${members}::jsonb where id = ${id} and unit_id = ${u.id}`;
     else await sql`insert into pl_shifts (unit_id, post, start_ts, end_ts, member_ids) values (${u.id}, ${post}, ${start}, ${end}, ${members}::jsonb)`;
   },
-  async 'shift.del'({ b, u, edit }) { edit(); await sql`delete from pl_shifts where id = ${num(b.id)} and unit_id = ${u.id}`; },
+  async 'shift.del'({ b, u, edit }) { edit(); guardOn(u); await sql`delete from pl_shifts where id = ${num(b.id)} and unit_id = ${u.id}`; },
   // a whole generated list at once
   async 'shifts.bulk'({ b, u, edit }) {
-    edit();
+    edit(); guardOn(u);
     const rows = await sql`select id from pl_members where unit_id = ${u.id}`;
     const ok = new Set(rows.map(r => Number(r.id)));
     const items = (Array.isArray(b.shifts) ? b.shifts : []).slice(0, 600).map(s => {
@@ -359,7 +363,7 @@ const OPS = {
   },
   // remove every shift that starts inside a time range (used to redo a day)
   async 'shifts.clear'({ b, u, edit }) {
-    edit();
+    edit(); guardOn(u);
     const from = ts(b.from, 'התחלה'), to = ts(b.to, 'סיום');
     if (to - from > 8 * DAY) bad('טווח גדול מדי');
     await sql`delete from pl_shifts where unit_id = ${u.id} and start_ts >= ${from} and start_ts < ${to}`;

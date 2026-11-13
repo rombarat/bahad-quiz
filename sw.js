@@ -4,7 +4,7 @@
 // - Icons, the manifest and the topography pictures are precached; Google Fonts are cached the first time they load.
 // - The leaderboard API (/api/) is never cached: it always goes to the network.
 // Bump VERSION when the list of precached files changes.
-const VERSION = 'v3'; // v3: topography pictures for the picture questions
+const VERSION = 'v4'; // v4: the company board (/pluga) is cached apart from the quiz page
 const APP = 'bahad-app-' + VERSION;
 const FONTS = 'bahad-fonts';
 const PRECACHE = [
@@ -77,7 +77,12 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
 
-  // every page load (/, /?source=pwa, /index.html) is the same single page
+  // the company board is its own page, kept under its own key
+  if (req.mode === 'navigate' && url.pathname.startsWith('/pluga')) {
+    e.respondWith(networkFirst(req, '/pluga'));
+    return;
+  }
+  // every other page load (/, /?source=pwa, /index.html) is the same single page
   if (req.mode === 'navigate') {
     e.respondWith(networkFirst(req, '/'));
     return;

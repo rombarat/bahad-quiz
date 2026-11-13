@@ -12,7 +12,9 @@ function formBody(req) {
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-  const back = ok => { res.statusCode = 303; res.setHeader('Location', `/?login=${ok ? 'ok' : 'error'}`); res.end(); };
+  // the company board (/pluga) sets a short-lived bq_back cookie before sign-in, so the browser returns there
+  const home = cookies(req).bq_back === 'pluga' ? '/pluga' : '/';
+  const back = ok => { res.statusCode = 303; res.setHeader('Location', `${home}?login=${ok ? 'ok' : 'error'}`); res.end(); };
   if (req.method !== 'POST') return back(false);
   try {
     const b = formBody(req);

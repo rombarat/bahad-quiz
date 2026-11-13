@@ -39,12 +39,29 @@
           "value": "no-cache"
         }
       ]
+    },
+    {
+      "source": "/pluga.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     }
   ],
   "rewrites": [
     {
       "source": "/admin",
       "destination": "/api/admin"
+    },
+    {
+      "source": "/pluga",
+      "destination": "/pluga.html"
     }
   ]
 }

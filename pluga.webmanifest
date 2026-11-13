@@ -1,0 +1,20 @@
+{
+  "name": "לוח הפלוגה",
+  "short_name": "לוח הפלוגה",
+  "description": "לו״ז, תורנויות, משימות ואנשי קשר של הפלוגה בבה״ד 1.",
+  "lang": "he",
+  "dir": "rtl",
+  "id": "/pluga",
+  "start_url": "/pluga",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f5ef",
+  "theme_color": "#58702a",
+  "categories": ["productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

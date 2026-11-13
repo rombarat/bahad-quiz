@@ -1,0 +1,1009 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>לוח הפלוגה</title>
+<meta name="description" content="לו״ז, תורנויות, שמירות ומשימות של הפלוגה בבה״ד 1, במקום אחד.">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="/pluga.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#58702a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="לוח הפלוגה">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
+<style>
+:root{
+  --bg:#f6f5ef; --surface:#ffffff; --fg:#1c2117; --muted:#6a7160; --line:#dedcd0; --line-deep:#c9c6b6;
+  --accent:#58702a; --accent-deep:#3f5219; --accent-soft:#eaf0d8; --on-accent:#fff;
+  --good:#2f8a33; --good-soft:#d9f2d4; --bad:#c9382e; --bad-soft:#fde0dc; --warn:#b36b00; --warn-soft:#fdeccb;
+  --k-lesson:#2f6fb5; --k-field:#4f7a1f; --k-exam:#c9382e; --k-sport:#d07a12; --k-formation:#7a55b8; --k-meal:#a07a2c; --k-free:#1f8f86; --k-other:#6a7160;
+  --display:"Rubik","Arial Hebrew",sans-serif; --body:"Assistant","Arial",sans-serif;
+  --shadow:0 1px 2px rgba(28,33,23,.06),0 6px 18px rgba(28,33,23,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12150f; --surface:#1b1f17; --fg:#eceee4; --muted:#9ba290; --line:#30362a; --line-deep:#252a20;
+  --accent:#9cbc52; --accent-deep:#6f8a33; --accent-soft:#263018; --on-accent:#12150f;
+  --good:#5cc35f; --good-soft:#18301a; --bad:#ef6b61; --bad-soft:#3a1b18; --warn:#f0b24a; --warn-soft:#3a2c12;
+  --k-lesson:#6aaee8; --k-field:#9cbc52; --k-exam:#ef6b61; --k-sport:#f6ad33; --k-formation:#b497e6; --k-meal:#d3b06a; --k-free:#55c7bd; --k-other:#9ba290;
+  --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:17px;line-height:1.45;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:3px solid var(--k-lesson);outline-offset:2px;border-radius:8px}
+h1,h2,h3,p{margin:0}
+svg.i{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---- shell ---- */
+#app{min-height:100%;display:flex;flex-direction:column}
+.wrap{width:100%;max-width:720px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.top .wrap{display:flex;align-items:center;gap:12px;height:58px}
+.top h1{font:800 1.15rem var(--display);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top small{display:block;font:600 .8rem var(--body);color:var(--muted)}
+.ibtn{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:var(--muted)}
+.ibtn:hover{background:var(--line);color:var(--fg)}
+main{flex:1;padding-block:16px calc(96px + env(safe-area-inset-bottom,0px))}
+.nav{position:fixed;inset-inline:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav .wrap{display:grid;grid-template-columns:repeat(5,1fr);padding-inline:4px}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 2px 8px;font:700 .74rem var(--display);color:var(--muted);position:relative}
+.nav button[aria-current="page"]{color:var(--accent)}
+.nav button[aria-current="page"]::before{content:"";position:absolute;top:0;width:36px;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+.nav .dot{position:absolute;top:6px;inset-inline-start:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font:700 .68rem var(--display);display:grid;place-items:center}
+@media (min-width:980px){
+  .nav{inset-inline:auto;inset-inline-start:max(16px,calc(50% - 480px));top:90px;bottom:auto;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);width:96px}
+  .nav .wrap{grid-template-columns:1fr;padding:6px}
+  .nav button[aria-current="page"]::before{top:calc(50% - 14px);inset-inline-start:-6px;width:3px;height:28px;border-radius:0 3px 3px 0}
+  main{padding-bottom:40px}
+}
+
+/* ---- pieces ---- */
+.sec{margin-top:22px}
+.sec:first-child{margin-top:0}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.sec-h h2{font:800 1.02rem var(--display)}
+.link{color:var(--accent);font:700 .9rem var(--display);padding:6px 4px;display:inline-flex;align-items:center;gap:4px}
+.link svg.i{width:18px;height:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.pad{padding:14px 16px}
+.rows>*+*{border-top:1px solid var(--line)}
+.empty{color:var(--muted);padding:18px 16px;text-align:center;font-size:.95rem}
+.empty b{display:block;color:var(--fg);font:700 1rem var(--display);margin-bottom:2px}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+.badge{display:inline-flex;align-items:center;gap:4px;font:700 .74rem var(--display);padding:2px 8px;border-radius:999px;background:var(--line);color:var(--muted);white-space:nowrap}
+.badge.acc{background:var(--accent-soft);color:var(--accent)}
+.badge.bad{background:var(--bad-soft);color:var(--bad)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.good{background:var(--good-soft);color:var(--good)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;padding:10px 16px;font:700 .95rem var(--display);background:var(--accent);color:var(--on-accent);min-height:44px}
+.btn.ghost{background:var(--surface);color:var(--fg);border:1.5px solid var(--line-deep)}
+.btn.soft{background:var(--accent-soft);color:var(--accent)}
+.btn.danger{background:none;color:var(--bad);border:1.5px solid var(--bad-soft)}
+.btn.sm{padding:6px 12px;min-height:36px;font-size:.86rem;border-radius:10px}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.btn svg.i{width:18px;height:18px}
+.fab{position:fixed;z-index:6;inset-inline-end:max(16px,calc(50% - 344px));bottom:calc(80px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border-radius:20px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;box-shadow:0 6px 18px rgba(63,82,25,.35)}
+.fab svg.i{width:28px;height:28px;stroke-width:2.4}
+@media (min-width:980px){.fab{bottom:28px}}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1.5px solid var(--line-deep);background:var(--surface);border-radius:999px;padding:6px 14px;font:700 .88rem var(--display);color:var(--muted);min-height:38px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip.sug{border-style:dashed;font-weight:500;padding:4px 12px;min-height:34px}
+
+/* hero */
+.hero{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-deep) 100%);color:#fff;border-radius:20px;padding:18px 18px 16px;box-shadow:var(--shadow)}
+@media (prefers-color-scheme:dark){.hero{background:linear-gradient(135deg,#34421c,#222b14);border:1px solid var(--line)}}
+.hero h2{font:900 1.5rem/1.15 var(--display)}
+.hero p{opacity:.85;margin-top:2px;font-size:.95rem}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.hero-stats button{background:rgba(255,255,255,.14);border-radius:14px;padding:10px 8px;text-align:start;color:#fff}
+.hero-stats b{display:block;font:800 1.35rem/1.1 var(--display);font-variant-numeric:tabular-nums}
+.hero-stats span{font-size:.8rem;opacity:.9}
+
+/* week strip */
+.week{display:flex;align-items:center;gap:4px;margin-bottom:12px}
+.week .days{flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.day{border-radius:14px;padding:7px 0 6px;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--muted);border:1.5px solid transparent;position:relative}
+.day b{font:800 1.05rem var(--display);color:var(--fg);font-variant-numeric:tabular-nums}
+.day span{font:700 .74rem var(--display)}
+.day.today b{color:var(--accent)}
+.day[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.day[aria-pressed="true"] b{color:var(--on-accent)}
+.day i{width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.7}
+.day[aria-pressed="true"] i{background:var(--on-accent)}
+.day i.none{visibility:hidden}
+.weekbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.weekbar h2{font:800 1.05rem var(--display)}
+
+/* agenda */
+.ev{display:flex;gap:12px;padding:12px 14px;align-items:stretch;width:100%;text-align:start}
+.ev .t{width:48px;flex:none;font:700 .9rem var(--display);font-variant-numeric:tabular-nums;color:var(--fg);line-height:1.3}
+.ev .t small{display:block;font-weight:500;color:var(--muted);font-size:.8rem}
+.ev .bar{width:4px;border-radius:2px;background:var(--k);flex:none}
+.ev .b{flex:1;min-width:0}
+.ev .b h3{font:700 1rem var(--display);overflow-wrap:anywhere}
+.ev .b p{color:var(--muted);font-size:.86rem;display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px}
+.ev.now{background:color-mix(in srgb,var(--k) 9%,var(--surface))}
+.ev.past{opacity:.55}
+.kdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--k);margin-inline-end:5px}
+.prog{height:4px;border-radius:2px;background:var(--line);margin-top:8px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--k);border-radius:2px}
+.allday{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:12px;background:color-mix(in srgb,var(--k) 13%,var(--surface));border:1px solid color-mix(in srgb,var(--k) 30%,var(--line));font:700 .95rem var(--display);width:100%;text-align:start;margin-bottom:8px}
+
+/* list rows */
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;text-align:start}
+.row .b{flex:1;min-width:0}
+.row h3{font:700 1rem var(--display);overflow-wrap:anywhere}
+.row p{color:var(--muted);font-size:.88rem;margin-top:1px;overflow-wrap:anywhere}
+.row .meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.row.mine{background:var(--accent-soft)}
+.row .t{font:700 .92rem var(--display);font-variant-numeric:tabular-nums;white-space:nowrap;width:98px;flex:none}
+.me-name{font-weight:700;color:var(--accent)}
+.check{width:28px;height:28px;flex:none;border-radius:9px;border:2px solid var(--line-deep);display:grid;place-items:center;color:transparent;background:var(--surface)}
+.check[aria-checked="true"]{background:var(--good);border-color:var(--good);color:#fff}
+.check svg.i{width:18px;height:18px;stroke-width:3}
+.done h3{text-decoration:line-through;color:var(--muted)}
+.grp{font:800 .82rem var(--display);color:var(--muted);margin:16px 4px 6px;display:flex;align-items:center;gap:6px}
+.grp.late{color:var(--bad)}
+.post-h{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--line);font:800 .95rem var(--display)}
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;padding:12px 14px}
+.bars .n{font-weight:600;white-space:nowrap;max-width:38vw;overflow:hidden;text-overflow:ellipsis}
+.bars .bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.bars .bar i{display:block;height:100%;background:var(--accent);border-radius:5px}
+.bars .v{font:700 .85rem var(--display);font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.notice{padding:12px 14px}
+.notice p{white-space:pre-wrap;overflow-wrap:anywhere}
+.notice footer{display:flex;align-items:center;gap:8px;margin-top:6px;color:var(--muted);font-size:.82rem}
+.code{font:800 1.7rem var(--display);letter-spacing:.2em;direction:ltr;text-align:center;padding:10px;border-radius:12px;background:var(--bg);border:1.5px dashed var(--line-deep)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font:800 .95rem var(--display);flex:none;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+
+/* ---- sheet ---- */
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(15,18,10,.5);display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+.sheet{background:var(--surface);width:100%;max-width:600px;max-height:92dvh;border-radius:22px 22px 0 0;display:flex;flex-direction:column;animation:up .2s ease-out}
+@media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:22px;max-height:86dvh}}
+.sheet>header{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.sheet>header h2{flex:1;font:800 1.15rem var(--display)}
+.sheet .body{padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.sheet .body>*{flex-shrink:0}
+.sheet>footer{display:flex;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.sheet>footer .btn{flex:1}
+.sheet>footer .btn.danger{flex:none}
+@keyframes up{from{transform:translateY(30px);opacity:.6}}
+@keyframes fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.scrim,.sheet{animation:none}}
+.f{display:flex;flex-direction:column;gap:5px;font:700 .86rem var(--display);color:var(--muted)}
+.inp{border:1.5px solid var(--line-deep);background:var(--bg);border-radius:12px;padding:10px 12px;min-height:46px;width:100%;font:400 1rem var(--body);color:var(--fg)}
+textarea.inp{min-height:84px;resize:vertical}
+.inp:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sw{display:flex;align-items:center;gap:10px;font-weight:600}
+.sw input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.err{color:var(--bad);font-weight:600;font-size:.92rem}
+.hint{color:var(--muted);font-size:.86rem;font-weight:400}
+.pick{border:1.5px solid var(--line-deep);border-radius:12px;overflow:hidden}
+.pick-list{max-height:260px;overflow-y:auto}
+.pick-team{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--bg);font:800 .82rem var(--display);color:var(--muted);position:sticky;top:0}
+.pick-row{display:flex;align-items:center;gap:10px;padding:9px 12px;width:100%;text-align:start;border-top:1px solid var(--line)}
+.pick-row[aria-checked="true"]{background:var(--accent-soft);font-weight:700}
+.pick-row .check{width:22px;height:22px;border-radius:7px}
+.pick-row[aria-checked="true"] .check{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.pick input.inp{border:0;border-bottom:1.5px solid var(--line-deep);border-radius:0}
+.toast{position:fixed;z-index:40;inset-inline:0;bottom:calc(92px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;pointer-events:none}
+.toast span{background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font:700 .92rem var(--display);box-shadow:var(--shadow);max-width:90vw}
+.toast span.bad{background:var(--bad);color:#fff}
+
+/* ---- welcome ---- */
+.welcome{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;gap:18px;padding-block:32px;max-width:460px}
+.welcome .mark{width:64px;height:64px;border-radius:20px;background:var(--accent);color:#fff;display:grid;place-items:center}
+.welcome .mark svg.i{width:34px;height:34px}
+.welcome h1{font:900 2rem/1.1 var(--display);text-wrap:balance}
+.welcome ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.welcome li{display:flex;gap:10px;align-items:center;font-weight:600}
+.welcome li svg.i{color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="sheetRoot"></div>
+<div class="toast" id="toast" aria-live="polite"></div>
+<script>
+'use strict';
+/* =========================================================================
+   לוח הפלוגה — schedule, guard shifts, duties and tasks for one company.
+   One page, no build step. All data comes from POST /api/pluga { op, ... },
+   which always answers with the full state; the page keeps it in S and redraws.
+   ========================================================================= */
+const DAY = 86400000, HOUR = 3600000;
+const KINDS = { lesson: 'שיעור', field: 'שטח ותרגילים', exam: 'בוחן', sport: 'כושר', formation: 'מסדר וטקסים', meal: 'ארוחה', free: 'זמן אישי', other: 'אחר' };
+const TASK_KINDS = { submit: 'הגשה', exam: 'בוחן', prep: 'הכנה', gear: 'ציוד', other: 'אחר' };
+const ROLES = { admin: 'מנהל', editor: 'עורך', member: 'חבר' };
+const EVENT_IDEAS = ['מסדר בוקר', 'מד״ס', 'ארוחת בוקר', 'שיעור', 'ארוחת צהריים', 'זמן צוות', 'שיחת מ״פ', 'ארוחת ערב', 'ת״ש', 'מסדר לילה', 'ניווט', 'מטווח', 'תרגיל', 'בוחן'];
+const TASK_IDEAS = ['מערך שיעור', 'פקודת מבצע', 'סיכום שבוע', 'עבודת חקר', 'הכנה למתן שיעור', 'בוחן בר־אור', 'בוחן ידע', 'הכנת ציוד לשטח', 'משוב עמיתים'];
+const WD_LONG = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+const WD = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+const MONTHS = ['בינואר', 'בפברואר', 'במרץ', 'באפריל', 'במאי', 'ביוני', 'ביולי', 'באוגוסט', 'בספטמבר', 'באוקטובר', 'בנובמבר', 'בדצמבר'];
+
+let S = null;               // server state
+let CFG = {};               // /api/config
+const UI = { tab: 'today', day: null, guardDay: null, guardView: 'list', dutyWeek: null, taskFilter: 'open' };
+
+/* ---------- small helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const dk = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const dayMs = (key, hm = '00:00') => { const [y, m, d] = key.split('-').map(Number), [h, mi] = hm.split(':').map(Number); return new Date(y, m - 1, d, h, mi).getTime(); };
+const addDays = (key, n) => { const [y, m, d] = key.split('-').map(Number); return dk(new Date(y, m - 1, d + n)); };
+const today = () => dk(Date.now());
+const weekStart = key => addDays(key, -new Date(dayMs(key)).getDay());
+const hm = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const dayLong = key => { const d = new Date(dayMs(key)); return `יום ${WD_LONG[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const dayShort = key => { const d = new Date(dayMs(key)); return `${WD[d.getDay()]} ${d.getDate()}.${d.getMonth() + 1}`; };
+const dayRel = key => { const t = today(); return key === t ? 'היום' : key === addDays(t, 1) ? 'מחר' : key === addDays(t, -1) ? 'אתמול' : dayShort(key); };
+const hebDate = t => { try { return new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day: 'numeric', month: 'long' }).format(t); } catch { return ''; } };
+const plural = (n, one, many) => n === 1 ? one : `${n} ${many}`;
+const hoursTxt = h => { const r = Math.round(h * 10) / 10; return `${r} ש׳`; };
+const ICON = {
+  home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.500-1-8-4-8-9V6z"/>', broom: '<path d="M4 10a8 8 0 0114-4l2 2M20 14a8 8 0 01-14 4l-2-2"/><path d="M20 4v4h-4M4 20v-4h4"/>',
+  list: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>', users: '<circle cx="9" cy="8" r="3.500"/><path d="M2.500 20c.500-3.500 3-5.500 6.500-5.500s6 2 6.500 5.500"/><path d="M16 4.500a3.500 3.500 0 010 7M18.500 14.800c1.800.800 2.800 2.600 3 5.200"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', check: '<path d="M5 12.500l4.500 4.500L19 7.500"/>', prev: '<path d="M9 6l6 6-6 6"/>', next: '<path d="M15 6l-6 6 6 6"/>',
+  share: '<path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>', pin: '<path d="M12 21v-7M7 14h10l-1.500-4V4h-7v6z"/>', wand: '<path d="M5 19L16 8M14 6l4 4M18 3v3M21 6h-3M6 4v2M7 5H5"/>',
+  pin2: '<path d="M12 21s7-6.200 7-11a7 7 0 10-14 0c0 4.800 7 11 7 11z"/><circle cx="12" cy="10" r="2.500"/>', back: '<path d="M5 12h14M13 6l6 6-6 6"/>', clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'
+};
+const ic = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+
+function toast(msg, isBad) {
+  const t = $('#toast');
+  t.innerHTML = `<span class="${isBad ? 'bad' : ''}">${esc(msg)}</span>`;
+  clearTimeout(toast.t); toast.t = setTimeout(() => { t.innerHTML = ''; }, isBad ? 4500 : 2200);
+}
+
+/* ---------- data ---------- */
+class ApiError extends Error { constructor(msg, status) { super(msg); this.status = status; } }
+async function api(op, body = {}) {
+  let r;
+  try { r = await fetch('/api/pluga', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op, ...body }) }); }
+  catch { throw new ApiError('אין חיבור לרשת', 0); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new ApiError(j.error === 'auth' ? 'צריך להתחבר' : (j.error || 'משהו השתבש'), r.status);
+  return j;
+}
+function setState(j) {
+  if (!j || !('unit' in j)) return;
+  S = j;
+  if (S.unit) {
+    S.byId = new Map(S.members.map(m => [m.id, m]));
+    try { localStorage.setItem('pl_state', JSON.stringify(j)); } catch {}
+  }
+}
+// run an operation, take the fresh state, redraw. Returns true when it worked.
+async function act(op, body, okMsg) {
+  try {
+    const j = await api(op, body);
+    if ('unit' in j) { setState(j); render(); }
+    if (okMsg) toast(okMsg);
+    return j;
+  } catch (e) {
+    if (e.status === 401) { S = null; render(); } else toast(e.message, true);
+    return null;
+  }
+}
+async function refresh(quiet) {
+  try { setState(await api('state')); render(); }
+  catch (e) { if (e.status === 401) { S = null; UI.signedOut = true; render(); } else if (!quiet) toast(e.message, true); }
+}
+const me = () => S.me;
+const canEdit = () => S.me.role !== 'member' || S.unit.openEdit;
+const isAdmin = () => S.me.role === 'admin';
+const nameOf = id => (S.byId.get(id) || {}).name || '—';
+const names = ids => ids.length ? ids.map(id => id === S.me.id ? `<span class="me-name">${esc(nameOf(id))}</span>` : esc(nameOf(id))).join(', ') : '<span class="muted">לא שובץ</span>';
+const mine = ids => ids.includes(S.me.id);
+const activeMembers = () => S.members.filter(m => m.active);
+const eventsOn = key => { const a = dayMs(key), b = a + DAY; return S.events.filter(e => e.start < b && e.end > a && (e.allDay ? e.start < b : true)); };
+// a guard day runs from 06:00 to 06:00 the next morning, so a whole night's list sits under the evening's date
+const GUARD_FROM = '06:00';
+const guardKey = t => dk(t - 6 * HOUR);
+const guardMs = (key, hm) => dayMs(hm < GUARD_FROM ? addDays(key, 1) : key, hm);
+const shiftsOn = key => { const a = dayMs(key, GUARD_FROM), b = dayMs(addDays(key, 1), GUARD_FROM); return S.shifts.filter(s => s.start >= a && s.start < b); };
+const myTasks = () => S.tasks.filter(t => t.scope !== 'team' || t.team === S.me.team);
+const isDone = t => t.done.includes(S.me.id);
+
+/* ---------- welcome: sign-in, then join or open a company ---------- */
+function renderSignIn() {
+  $('#app').innerHTML = `<div class="wrap welcome">
+    <div class="mark">${ic('shield')}</div>
+    <div><h1>לוח הפלוגה</h1><p class="muted" style="margin-top:6px">כל מה שקורה בקורס, במקום אחד שכל הפלוגה רואה.</p></div>
+    <ul>
+      <li>${ic('cal')} הלו״ז היומי והשבועי</li>
+      <li>${ic('shield')} רשימות שמירה וטבלת צדק</li>
+      <li>${ic('broom')} תורנויות לפי ימים</li>
+      <li>${ic('list')} משימות ותאריכי הגשה</li>
+    </ul>
+    <div id="gsi" style="min-height:44px"></div>
+    <p class="hint">המידע פתוח רק למי שקיבל את קוד הפלוגה. לא מעלים לכאן מידע מסווג.</p>
+  </div>`;
+  const box = $('#gsi');
+  if (!CFG.googleClientId) { box.innerHTML = '<p class="err">ההתחברות עוד לא הוגדרה באתר.</p>'; return; }
+  // the sign-in comes back to /api/auth-google; this cookie tells it to return here and not to the quiz
+  document.cookie = 'bq_back=pluga; Path=/; Max-Age=900; SameSite=None; Secure';
+  try { localStorage.setItem('pl_back', Date.now()); } catch {}
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = () => {
+    google.accounts.id.initialize({ client_id: CFG.googleClientId, ux_mode: 'redirect', login_uri: location.origin + '/api/auth-google' });
+    google.accounts.id.renderButton(box, { type: 'standard', theme: 'filled_blue', size: 'large', text: 'continue_with', shape: 'pill', locale: 'he', width: Math.min(320, box.clientWidth || 300) });
+  };
+  s.onerror = () => { box.innerHTML = '<p class="err">לא הצלחנו לטעון את ההתחברות של גוגל. בדקו את החיבור.</p>'; };
+  document.head.appendChild(s);
+}
+
+const JOIN = { step: 'code', code: '', peek: null, err: '' };
+function renderJoin() {
+  const first = (S.user.name || '').trim();
+  let body;
+  if (JOIN.step === 'code') {
+    body = `<div><h1>שלום${first ? ' ' + esc(first.split(' ')[0]) : ''}</h1><p class="muted" style="margin-top:6px">כדי להיכנס צריך את קוד הפלוגה. מקבלים אותו ממי שפתח את הלוח.</p></div>
+      <label class="f">קוד פלוגה<input class="inp" id="jCode" value="${esc(JOIN.code)}" maxlength="6" autocapitalize="characters" autocomplete="off" style="font:800 1.4rem var(--display);letter-spacing:.2em;direction:ltr;text-align:center"></label>
+      ${JOIN.err ? `<p class="err">${esc(JOIN.err)}</p>` : ''}
+      <button class="btn wide" data-act="joinPeek">המשך</button>
+      <button class="link" data-act="joinNew" style="align-self:center">אין קוד? פתיחת לוח לפלוגה חדשה</button>`;
+  } else if (JOIN.step === 'who') {
+    const p = JOIN.peek;
+    body = `<div><h1>${esc(p.unit.name)}</h1><p class="muted" style="margin-top:6px">${p.free.length ? 'אם השם שלך כבר ברשימה, בחרו אותו. אחרת הוסיפו את עצמכם למטה.' : 'איך קוראים לך ובאיזה צוות?'}</p></div>
+      ${p.free.length ? `<div class="card rows" style="max-height:40dvh;overflow:auto">${p.free.map(f => `<button class="row" data-act="joinClaim" data-id="${f.id}"><div class="b"><h3>${esc(f.name)}</h3>${f.team ? `<p>${esc(f.team)}</p>` : ''}</div>${ic('next')}</button>`).join('')}</div><p class="grp" style="margin:0">לא ברשימה?</p>` : ''}
+      <label class="f">שם מלא<input class="inp" id="jName" value="${esc(S.user.name)}" maxlength="60"></label>
+      ${p.unit.teams.length ? `<label class="f">צוות<select class="inp" id="jTeam"><option value="">בלי צוות</option>${p.unit.teams.map(t => `<option>${esc(t)}</option>`).join('')}</select></label>` : ''}
+      ${JOIN.err ? `<p class="err">${esc(JOIN.err)}</p>` : ''}
+      <button class="btn wide" data-act="joinAdd">הצטרפות</button>
+      <button class="link" data-act="joinBack" style="align-self:center">חזרה</button>`;
+  } else {
+    body = `<div><h1>לוח חדש</h1><p class="muted" style="margin-top:6px">פותחים לוח לפלוגה, מקבלים קוד, ושולחים אותו לכולם. אפשר לשנות הכול אחר כך.</p></div>
+      <label class="f">שם הפלוגה<input class="inp" id="nUnit" placeholder="למשל: פלוגה ב׳, גדוד ארז" maxlength="60"></label>
+      <label class="f">השם שלך<input class="inp" id="nName" value="${esc(S.user.name)}" maxlength="60"></label>
+      <label class="f">הצוותים בפלוגה<span class="hint">שם בכל שורה</span><textarea class="inp" id="nTeams" placeholder="צוות 1&#10;צוות 2&#10;צוות 3"></textarea></label>
+      <label class="f">הצוות שלך<input class="inp" id="nTeam" placeholder="צוות 1" maxlength="30"></label>
+      ${JOIN.err ? `<p class="err">${esc(JOIN.err)}</p>` : ''}
+      <button class="btn wide" data-act="joinCreate">פתיחת הלוח</button>
+      <button class="link" data-act="joinBack" style="align-self:center">חזרה</button>`;
+  }
+  $('#app').innerHTML = `<div class="wrap welcome"><div class="mark">${ic('shield')}</div>${body}
+    <button class="link muted" data-act="logout" style="align-self:center;color:var(--muted)">התנתקות (${esc(S.user.email)})</button></div>`;
+}
+
+/* ---------- shell ---------- */
+const TABS = [['today', 'היום', 'home'], ['sched', 'לו״ז', 'cal'], ['guard', 'שמירות', 'shield'], ['duty', 'תורנויות', 'broom'], ['tasks', 'משימות', 'list']];
+function render() {
+  if (!S) return renderSignIn();
+  if (!S.unit) return renderJoin();
+  const t = today();
+  UI.day = UI.day || t; UI.guardDay = UI.guardDay || guardKey(Date.now()); UI.dutyWeek = UI.dutyWeek || weekStart(t);
+  const late = myTasks().filter(x => !isDone(x) && x.due && x.due < Date.now() + DAY).length;
+  const view = { today: viewToday, sched: viewSched, guard: viewGuard, duty: viewDuty, tasks: viewTasks, unit: viewUnit }[UI.tab]();
+  const scroll = window.scrollY;
+  $('#app').innerHTML = `
+    <header class="top"><div class="wrap">
+      ${UI.tab === 'unit' ? `<button class="ibtn" data-act="tab" data-tab="today" aria-label="חזרה">${ic('back')}</button>` : ''}
+      <h1>${UI.tab === 'unit' ? 'הפלוגה' : esc(S.unit.name)}<small>${esc(dayLong(t))}</small></h1>
+      ${UI.tab === 'unit' ? '' : `<button class="ibtn" data-act="tab" data-tab="unit" aria-label="הפלוגה והגדרות">${ic('users')}</button>`}
+    </div></header>
+    <main><div class="wrap">${view.html}</div></main>
+    ${view.fab ? `<button class="fab" data-act="${view.fab}" aria-label="הוספה">${ic('plus')}</button>` : ''}
+    <nav class="nav"><div class="wrap">${TABS.map(([id, label, icon]) => `<button data-act="tab" data-tab="${id}" ${UI.tab === id ? 'aria-current="page"' : ''}>${ic(icon)}${label}${id === 'tasks' && late ? `<span class="dot">${late}</span>` : ''}</button>`).join('')}</div></nav>`;
+  if (render.last === UI.tab) window.scrollTo(0, scroll); else window.scrollTo(0, 0);
+  render.last = UI.tab;
+}
+
+/* ---------- today ---------- */
+function evRow(e, key, now) {
+  const a = dayMs(key);
+  const cls = e.end <= now ? 'past' : (e.start <= now ? 'now' : '');
+  const starts = e.start >= a ? hm(e.start) : 'המשך';
+  const prog = cls === 'now' ? `<div class="prog"><i style="width:${Math.round((now - e.start) / (e.end - e.start) * 100)}%"></i></div>` : '';
+  return `<button class="ev ${cls}" style="--k:var(--k-${e.kind})" data-act="evOpen" data-id="${e.id}">
+    <div class="t">${starts}<small>${hm(e.end)}</small></div><div class="bar"></div>
+    <div class="b"><h3>${esc(e.title)}</h3><p>${e.location ? `<span>${esc(e.location)}</span>` : ''}${e.team ? `<span>${esc(e.team)}</span>` : ''}${cls === 'now' ? '<span style="color:var(--k);font-weight:700">עכשיו</span>' : ''}</p>${prog}</div></button>`;
+}
+function taskRow(t) {
+  const d = isDone(t), now = Date.now();
+  let due = '';
+  if (t.due) {
+    const diff = Math.round((dayMs(dk(t.due)) - dayMs(today())) / DAY);
+    const txt = diff < 0 ? (diff === -1 ? 'אתמול' : `לפני ${-diff} ימים`) : diff === 0 ? `היום ${hm(t.due)}` : diff === 1 ? `מחר ${hm(t.due)}` : diff < 7 ? `יום ${WD_LONG[new Date(t.due).getDay()]}` : dayShort(dk(t.due));
+    due = `<span class="badge ${d ? '' : t.due < now ? 'bad' : diff <= 1 ? 'warn' : ''}">${ic('clock').replace('class="i"', 'class="i" style="width:13px;height:13px"')}${txt}</span>`;
+  }
+  const shared = t.scope !== 'personal';
+  const total = shared ? activeMembers().filter(m => t.scope === 'unit' || m.team === t.team).length : 0;
+  return `<div class="row ${d ? 'done' : ''}">
+    <button class="check" role="checkbox" aria-checked="${d}" aria-label="סימון ${esc(t.title)}" data-act="taskTick" data-id="${t.id}">${ic('check')}</button>
+    <button class="b" data-act="taskOpen" data-id="${t.id}" style="text-align:start"><h3>${esc(t.title)}</h3>
+      <div class="meta">${due}<span class="badge">${TASK_KINDS[t.kind]}</span>${t.scope === 'team' ? `<span class="badge acc">${esc(t.team)}</span>` : t.scope === 'personal' ? '<span class="badge acc">אישי</span>' : ''}${shared && canEdit() ? `<span class="badge">${t.done.length}/${total} ביצעו</span>` : ''}</div></button></div>`;
+}
+function viewToday() {
+  const now = Date.now(), t = today(), tm = addDays(t, 1);
+  const evs = eventsOn(t).filter(e => !e.allDay), allDay = eventsOn(t).filter(e => e.allDay);
+  const upcoming = evs.filter(e => e.end > now);
+  const myShifts = S.shifts.filter(s => mine(s.members) && s.end > now && s.start < now + 2 * DAY);
+  const myDuties = S.duties.filter(d => mine(d.members) && (d.day === t || d.day === tm));
+  const open = myTasks().filter(x => !isDone(x));
+  const soon = open.filter(x => x.due && x.due < now + 7 * DAY).sort((a, b) => a.due - b.due);
+  const dutiesToday = S.duties.filter(d => d.day === t);
+  const first = S.me.name.split(' ')[0];
+  const hr = new Date().getHours();
+  const greet = hr < 5 ? 'לילה טוב' : hr < 12 ? 'בוקר טוב' : hr < 17 ? 'צהריים טובים' : hr < 21 ? 'ערב טוב' : 'לילה טוב';
+  const nextShift = S.shifts.find(s => mine(s.members) && s.end > now);
+  let html = `<section class="hero"><h2>${greet}, ${esc(first)}</h2><p>${esc(dayLong(t))}${hebDate(now) ? ' · ' + esc(hebDate(now)) : ''}</p>
+    <div class="hero-stats">
+      <button data-act="tab" data-tab="sched"><b>${upcoming.length}</b><span>נשאר היום בלו״ז</span></button>
+      <button data-act="tab" data-tab="guard"><b>${nextShift ? (dk(nextShift.start) === t ? hm(nextShift.start) : dayRel(dk(nextShift.start))) : '—'}</b><span>השמירה שלי</span></button>
+      <button data-act="tab" data-tab="tasks"><b>${open.length}</b><span>משימות פתוחות</span></button>
+    </div></section>`;
+
+  const pinned = S.notices.filter(n => n.pinned);
+  if (pinned.length) html += `<section class="sec">${pinned.map(n => `<div class="allday" style="--k:var(--k-sport);font-weight:600;white-space:pre-wrap">${ic('pin')}<span style="flex:1">${esc(n.body)}</span></div>`).join('')}</section>`;
+
+  html += `<section class="sec"><div class="sec-h"><h2>עכשיו והמשך היום</h2><button class="link" data-act="tab" data-tab="sched">כל הלו״ז</button></div>
+    ${allDay.map(e => `<button class="allday" style="--k:var(--k-${e.kind})" data-act="evOpen" data-id="${e.id}"><span class="kdot"></span>${esc(e.title)}</button>`).join('')}
+    <div class="card rows">${upcoming.length ? upcoming.slice(0, 5).map(e => evRow(e, t, now)).join('') + (upcoming.length > 5 ? `<button class="row link" data-act="tab" data-tab="sched" style="justify-content:center">עוד ${upcoming.length - 5} בהמשך היום</button>` : '')
+      : `<div class="empty"><b>${evs.length ? 'הלו״ז של היום הסתיים' : 'אין לו״ז להיום'}</b>${evs.length ? 'מחר מתחילים מחדש.' : S.events.length ? 'אפשר לעבור ליום אחר בלשונית לו״ז.' : isAdmin() ? 'אפשר לחבר את יומן הגוגל של הקורס בהגדרות הפלוגה, או להוסיף אירועים ביד.' : 'כשהלו״ז יתפרסם הוא יופיע כאן.'}</div>`}</div></section>`;
+
+  html += `<section class="sec"><div class="sec-h"><h2>אצלי ב־48 השעות הקרובות</h2></div><div class="card rows">
+    ${myShifts.map(s => `<div class="row">${ic('shield')}<div class="b"><h3>שמירה · ${esc(s.post)}</h3><p>${dayRel(dk(s.start))} ${hm(s.start)}–${hm(s.end)}${s.members.length > 1 ? ' · עם ' + s.members.filter(i => i !== S.me.id).map(i => esc(nameOf(i))).join(', ') : ''}</p></div></div>`).join('')}
+    ${myDuties.map(d => `<div class="row">${ic('broom')}<div class="b"><h3>${esc(d.type)}</h3><p>${dayRel(d.day)}${d.notes ? ' · ' + esc(d.notes) : ''}</p></div></div>`).join('')}
+    ${!myShifts.length && !myDuties.length ? '<div class="empty">אין לך שמירות או תורנויות ביומיים הקרובים.</div>' : ''}</div></section>`;
+
+  if (soon.length) html += `<section class="sec"><div class="sec-h"><h2>להגיש השבוע</h2><button class="link" data-act="tab" data-tab="tasks">כל המשימות</button></div><div class="card rows">${soon.slice(0, 5).map(taskRow).join('')}</div></section>`;
+
+  html += `<section class="sec"><div class="sec-h"><h2>תורנים היום</h2><button class="link" data-act="tab" data-tab="duty">כל השבוע</button></div><div class="card rows">
+    ${dutiesToday.length ? dutiesToday.map(d => `<div class="row ${mine(d.members) ? 'mine' : ''}"><div class="b"><h3>${esc(d.type)}</h3><p>${names(d.members)}</p></div></div>`).join('') : '<div class="empty">לא שובצו תורנים להיום.</div>'}</div></section>`;
+
+  const rest = S.notices.filter(n => !n.pinned);
+  html += `<section class="sec"><div class="sec-h"><h2>הודעות</h2>${canEdit() ? `<button class="link" data-act="noticeNew">${ic('plus')}הודעה</button>` : ''}</div><div class="card rows">
+    ${S.notices.length ? [...pinned, ...rest].slice(0, 8).map(n => `<div class="notice"><p>${esc(n.body)}</p><footer>${n.pinned ? '<span class="badge warn">נעוץ</span>' : ''}<span>${esc(nameOf(n.by))} · ${dayRel(dk(n.at))} ${hm(n.at)}</span>${canEdit() ? `<button class="link small" data-act="noticeEdit" data-id="${n.id}" style="margin-inline-start:auto;padding:0">עריכה</button>` : ''}</footer></div>`).join('') : '<div class="empty">אין הודעות.</div>'}</div></section>`;
+  return { html };
+}
+
+/* ---------- week strip (shared by schedule and guard) ---------- */
+function weekStrip(sel, act, has) {
+  const ws = weekStart(sel), t = today();
+  const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+  const a = new Date(dayMs(ws)), b = new Date(dayMs(days[6]));
+  const title = a.getMonth() === b.getMonth() ? `${a.getDate()}–${b.getDate()} ${MONTHS[a.getMonth()]}` : `${a.getDate()} ${MONTHS[a.getMonth()]} – ${b.getDate()} ${MONTHS[b.getMonth()]}`;
+  return `<div class="weekbar"><h2>${title}</h2>${sel !== t ? `<button class="btn sm soft" data-act="${act}" data-day="${t}">היום</button>` : ''}</div>
+    <div class="week"><button class="ibtn" data-act="${act}" data-day="${addDays(sel, -7)}" aria-label="שבוע קודם">${ic('prev')}</button>
+    <div class="days">${days.map(d => `<button class="day ${d === t ? 'today' : ''}" aria-pressed="${d === sel}" data-act="${act}" data-day="${d}" aria-label="${dayLong(d)}"><span>${WD[new Date(dayMs(d)).getDay()]}</span><b>${new Date(dayMs(d)).getDate()}</b><i class="${has(d) ? '' : 'none'}"></i></button>`).join('')}</div>
+    <button class="ibtn" data-act="${act}" data-day="${addDays(sel, 7)}" aria-label="שבוע הבא">${ic('next')}</button></div>`;
+}
+
+/* ---------- schedule ---------- */
+function viewSched() {
+  const key = UI.day, now = Date.now();
+  const all = eventsOn(key), allDay = all.filter(e => e.allDay), evs = all.filter(e => !e.allDay);
+  const duties = S.duties.filter(d => d.day === key);
+  let html = weekStrip(key, 'schedDay', d => eventsOn(d).length > 0);
+  html += `<div class="sec-h"><h2>${esc(dayLong(key))}</h2>${hebDate(dayMs(key, '12:00')) ? `<span class="muted small">${esc(hebDate(dayMs(key, '12:00')))}</span>` : ''}</div>`;
+  html += allDay.map(e => `<button class="allday" style="--k:var(--k-${e.kind})" data-act="evOpen" data-id="${e.id}"><span class="kdot"></span>${esc(e.title)}</button>`).join('');
+  html += `<div class="card rows">${evs.length ? evs.map(e => evRow(e, key, key === today() ? now : (dayMs(key) < now ? Infinity : 0))).join('')
+    : `<div class="empty"><b>אין אירועים ביום הזה</b>${canEdit() ? 'אפשר להוסיף עם כפתור הפלוס.' : ''}</div>`}</div>`;
+  if (duties.length) html += `<section class="sec"><div class="sec-h"><h2>תורנים</h2></div><div class="card rows">${duties.map(d => `<div class="row ${mine(d.members) ? 'mine' : ''}"><div class="b"><h3>${esc(d.type)}</h3><p>${names(d.members)}</p></div></div>`).join('')}</div></section>`;
+  if (S.unit.hasIcs || S.unit.icsUrl) html += `<p class="hint" style="text-align:center;margin-top:14px">הלו״ז מסתנכרן מיומן הגוגל של הקורס.</p>`;
+  return { html, fab: canEdit() ? 'evNew' : null };
+}
+
+/* ---------- guard ---------- */
+function justice() {
+  const rows = new Map(activeMembers().map(m => [m.id, { m, hours: 0, night: 0, shifts: 0, duties: 0 }]));
+  S.shifts.forEach(s => s.members.forEach(id => { const r = rows.get(id); if (!r) return; r.hours += (s.end - s.start) / HOUR; r.shifts++; const h = new Date(s.start).getHours(); if (h >= 22 || h < 6) r.night++; }));
+  S.duties.forEach(d => d.members.forEach(id => { const r = rows.get(id); if (r) r.duties++; }));
+  return [...rows.values()];
+}
+function viewGuard() {
+  const key = UI.guardDay, now = Date.now();
+  const seg = `<div class="chips" style="margin-bottom:14px"><button class="chip" aria-pressed="${UI.guardView === 'list'}" data-act="guardView" data-v="list">רשימת שמירה</button><button class="chip" aria-pressed="${UI.guardView === 'fair'}" data-act="guardView" data-v="fair">טבלת צדק</button></div>`;
+  if (UI.guardView === 'fair') {
+    const rows = justice().sort((a, b) => b.hours - a.hours || b.duties - a.duties);
+    const max = Math.max(1, ...rows.map(r => r.hours));
+    const any = rows.some(r => r.hours || r.duties);
+    return { html: seg + `<p class="hint" style="margin-bottom:10px">שעות שמירה ותורנויות לכל אחד, ב־90 הימים האחרונים ובשיבוצים שכבר נקבעו. המחולל משבץ קודם את מי ששמר פחות.</p>
+      <div class="card">${any ? `<div class="bars">${rows.map(r => `<span class="n ${r.m.id === S.me.id ? 'me-name' : ''}">${esc(r.m.name)}</span><span class="bar"><i style="width:${r.hours / max * 100}%"></i></span><span class="v">${hoursTxt(r.hours)}${r.night ? ` · ${r.night} לילה` : ''}${r.duties ? ` · ${r.duties} תור׳` : ''}</span>`).join('')}</div>` : '<div class="empty">עוד אין שמירות או תורנויות לספור.</div>'}</div>` };
+  }
+  const list = shiftsOn(key);
+  const posts = [...new Set(list.map(s => s.post))];
+  let html = seg + weekStrip(key, 'guardDay', d => shiftsOn(d).length > 0);
+  html += `<div class="sec-h"><h2>${esc(dayLong(key))}<small class="muted" style="display:block;font:500 .8rem var(--body)">מ־06:00 עד 06:00 למחרת</small></h2><span style="display:flex;gap:4px">${list.length ? `<button class="link" data-act="guardShare">${ic('share')}שיתוף</button>` : ''}${canEdit() ? `<button class="link" data-act="guardGen">${ic('wand')}מחולל</button>` : ''}</span></div>`;
+  if (!list.length) html += `<div class="card"><div class="empty"><b>אין רשימת שמירה ליום הזה</b>${canEdit() ? 'המחולל בונה רשימה הוגנת מעמדות, שעות ואנשים. אפשר גם להוסיף משמרת בודדת עם הפלוס.' : 'כשהרשימה תפורסם היא תופיע כאן.'}</div></div>`;
+  html += posts.map(p => `<div class="card" style="margin-bottom:12px"><div class="post-h"><span>${esc(p)}</span><span class="badge">${plural(list.filter(s => s.post === p).length, 'משמרת אחת', 'משמרות')}</span></div><div class="rows">
+    ${list.filter(s => s.post === p).map(s => `<${canEdit() ? 'button data-act="shiftOpen" data-id="' + s.id + '"' : 'div'} class="row ${mine(s.members) ? 'mine' : ''}" ${s.end <= now ? 'style="opacity:.55"' : ''}><span class="t">${hm(s.start)}–${hm(s.end)}</span><div class="b"><p style="color:var(--fg);font-size:1rem">${names(s.members)}</p></div>${s.start <= now && s.end > now ? '<span class="badge good">עכשיו</span>' : ''}</${canEdit() ? 'button' : 'div'}>`).join('')}</div></div>`).join('');
+  return { html, fab: canEdit() ? 'shiftNew' : null };
+}
+function guardText(key) {
+  const list = shiftsOn(key);
+  const posts = [...new Set(list.map(s => s.post))];
+  return `🛡️ שמירות · ${dayLong(key)}\n` + posts.map(p => `\n*${p}*\n` + list.filter(s => s.post === p).map(s => `${hm(s.start)}–${hm(s.end)} · ${s.members.map(nameOf).join(', ') || '—'}`).join('\n')).join('\n');
+}
+async function share(text) {
+  try { if (navigator.share && matchMedia('(pointer:coarse)').matches) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text); toast('הועתק. אפשר להדביק בוואטסאפ'); } catch { toast('לא הצלחנו להעתיק', true); }
+}
+
+/* ---------- duties ---------- */
+function viewDuty() {
+  const ws = UI.dutyWeek, t = today();
+  const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+  const a = new Date(dayMs(ws)), b = new Date(dayMs(days[6]));
+  let html = `<div class="week" style="margin-bottom:14px"><button class="ibtn" data-act="dutyWeek" data-day="${addDays(ws, -7)}" aria-label="שבוע קודם">${ic('prev')}</button>
+    <div style="flex:1;text-align:center"><h2 style="font:800 1.05rem var(--display)">${a.getDate()}.${a.getMonth() + 1} – ${b.getDate()}.${b.getMonth() + 1}</h2>${ws !== weekStart(t) ? `<button class="link small" data-act="dutyWeek" data-day="${weekStart(t)}" style="padding:0">חזרה לשבוע הזה</button>` : '<span class="muted small">השבוע</span>'}</div>
+    <button class="ibtn" data-act="dutyWeek" data-day="${addDays(ws, 7)}" aria-label="שבוע הבא">${ic('next')}</button></div>`;
+  const anyWeek = S.duties.some(d => d.day >= ws && d.day <= days[6]);
+  if (anyWeek) html += `<div style="display:flex;justify-content:flex-end;margin-top:-6px"><button class="link" data-act="dutyShare">${ic('share')}שיתוף השבוע</button></div>`;
+  html += days.map(d => {
+    const list = S.duties.filter(x => x.day === d);
+    if (!list.length) return `<div class="grp" ${d === t ? 'style="color:var(--accent)"' : ''}>${dayLong(d)}${d === t ? ' · היום' : ''}<span style="font-weight:500;margin-inline-start:auto">אין תורנויות</span></div>`;
+    return `<div class="grp" ${d === t ? 'style="color:var(--accent)"' : ''}>${dayLong(d)}${d === t ? ' · היום' : ''}</div><div class="card rows">${list.length ? list.map(x => `<${canEdit() ? 'button data-act="dutyOpen" data-id="' + x.id + '"' : 'div'} class="row ${mine(x.members) ? 'mine' : ''}"><div class="b"><h3>${esc(x.type)}</h3><p>${names(x.members)}${x.notes ? ' · ' + esc(x.notes) : ''}</p></div></${canEdit() ? 'button' : 'div'}>`).join('') : '<div class="empty" style="padding:10px">—</div>'}</div>`;
+  }).join('');
+  return { html, fab: canEdit() ? 'dutyNew' : null };
+}
+
+/* ---------- tasks ---------- */
+function viewTasks() {
+  const now = Date.now(), t0 = dayMs(today());
+  const all = myTasks();
+  const f = UI.taskFilter;
+  const list = all.filter(t => f === 'all' ? true : f === 'done' ? isDone(t) : !isDone(t));
+  const groups = [['late', 'באיחור', t => t.due && t.due < now && !isDone(t)], ['today', 'היום', t => t.due && t.due < t0 + DAY], ['week', 'השבוע הקרוב', t => t.due && t.due < t0 + 7 * DAY], ['later', 'בהמשך', t => t.due], ['none', 'בלי מועד', () => true]];
+  const used = new Set();
+  let html = `<div class="chips" style="margin-bottom:6px">${[['open', `פתוחות (${all.filter(t => !isDone(t)).length})`], ['done', 'בוצעו'], ['all', 'הכול']].map(([id, l]) => `<button class="chip" aria-pressed="${f === id}" data-act="taskFilter" data-v="${id}">${l}</button>`).join('')}</div>`;
+  if (!list.length) html += `<div class="card" style="margin-top:14px"><div class="empty"><b>${f === 'open' ? 'אין משימות פתוחות' : 'אין כאן משימות'}</b>${f === 'open' ? 'הפלוס מוסיף משימה אישית' + (canEdit() ? ', לצוות או לכל הפלוגה.' : '.') : ''}</div></div>`;
+  for (const [id, label, test] of groups) {
+    const g = list.filter(t => !used.has(t.id) && test(t));
+    g.forEach(t => used.add(t.id));
+    if (g.length) html += `<div class="grp ${id === 'late' ? 'late' : ''}">${label}</div><div class="card rows">${g.map(taskRow).join('')}</div>`;
+  }
+  return { html, fab: 'taskNew' };
+}
+
+/* ---------- the company: people, code, settings ---------- */
+function viewUnit() {
+  const u = S.unit, act = activeMembers();
+  const teams = [...u.teams, ''].filter(t => t || act.some(m => !m.team));
+  let html = `<section class="sec"><div class="card"><button class="row" data-act="profile"><span class="avatar">${S.user.picture ? `<img src="${esc(S.user.picture)}" alt="" referrerpolicy="no-referrer">` : esc(S.me.name[0] || '')}</span><div class="b"><h3>${esc(S.me.name)}</h3><p>${esc(S.me.team || 'בלי צוות')} · ${ROLES[S.me.role]}</p></div><span class="link">עריכה</span></button></div></section>`;
+  if (isAdmin()) html += `<section class="sec"><div class="sec-h"><h2>קוד הצטרפות</h2></div><div class="card pad" style="display:flex;flex-direction:column;gap:10px">
+      <div class="code">${esc(u.code)}</div>
+      <p class="hint">מי שמקבל את הקוד רואה את כל הלוח. שולחים אותו רק לקבוצת הפלוגה. אם הקוד דלף, מחליפים אותו והישן מפסיק לעבוד.</p>
+      <div class="two"><button class="btn soft" data-act="invite">${ic('share')}שליחת הזמנה</button><button class="btn ghost" data-act="codeReset">החלפת קוד</button></div></div></section>`;
+  html += `<section class="sec"><div class="sec-h"><h2>אנשים (${act.length})</h2>${isAdmin() ? `<button class="link" data-act="rosterAdd">${ic('plus')}הוספת שמות</button>` : ''}</div>`;
+  html += teams.map(t => {
+    const list = act.filter(m => m.team === t || (!t && !u.teams.includes(m.team)));
+    return `<div class="grp">${esc(t || 'בלי צוות')} · ${list.length}</div><div class="card rows">${list.length ? list.map(m => `<${isAdmin() ? 'button data-act="memberOpen" data-id="' + m.id + '"' : 'div'} class="row"><div class="b"><h3 ${m.id === S.me.id ? 'class="me-name"' : ''}>${esc(m.name)}</h3></div>${m.role !== 'member' ? `<span class="badge acc">${ROLES[m.role]}</span>` : ''}${m.linked ? '' : '<span class="badge">עוד לא נכנס</span>'}</${isAdmin() ? 'button' : 'div'}>`).join('') : '<div class="empty" style="padding:10px">אין עדיין אנשים בצוות</div>'}</div>`;
+  }).join('');
+  html += '</section>';
+  if (isAdmin()) {
+    const sync = u.icsUrl ? (u.icsErr ? `<span class="err">הסנכרון האחרון נכשל: ${esc(u.icsErr)}</span>` : u.icsAt ? `סונכרן ${dayRel(dk(u.icsAt))} ב־${hm(u.icsAt)}` : 'יסונכרן בטעינה הבאה') : 'לא מחובר';
+    html += `<section class="sec"><div class="sec-h"><h2>הגדרות הפלוגה</h2></div><div class="card rows">
+      <button class="row" data-act="settings"><div class="b"><h3>שם, צוותים, עמדות וסוגי תורנות</h3><p>${u.teams.length} צוותים · ${u.posts.length} עמדות · ${u.dutyTypes.length} סוגי תורנות</p></div>${ic('next')}</button>
+      <button class="row" data-act="icsSet"><div class="b"><h3>חיבור יומן גוגל של הקורס</h3><p>${sync}</p></div>${ic('next')}</button>
+      <div class="row"><div class="b"><h3>עריכה פתוחה לכולם</h3><p>${u.openEdit ? 'כל חבר בפלוגה יכול להוסיף ולשנות' : 'רק מנהלים ועורכים מוסיפים ומשנים'}</p></div><button class="btn sm ${u.openEdit ? 'soft' : 'ghost'}" data-act="openEdit">${u.openEdit ? 'פתוח' : 'סגור'}</button></div></div></section>`;
+  }
+  html += `<section class="sec"><div class="card rows"><a class="row" href="/" style="text-decoration:none;color:inherit"><div class="b"><h3>השביל לבה״ד</h3><p>תרגול שאלות לקורס</p></div>${ic('next')}</a>
+    <button class="row" data-act="leave"><div class="b"><h3 style="color:var(--bad)">עזיבת הפלוגה</h3></div></button>
+    <button class="row" data-act="logout"><div class="b"><h3>התנתקות</h3><p>${esc(S.user.email)}</p></div></button></div></section>`;
+  return { html };
+}
+
+/* ---------- sheets (forms) ---------- */
+let SHEET = null;
+function sheet({ title, body, ok = 'שמירה', onOk, del, onDel, after }) {
+  SHEET = { onOk, onDel };
+  $('#sheetRoot').innerHTML = `<div class="scrim" data-act="sheetScrim"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <header><h2>${esc(title)}</h2><button class="ibtn" data-act="sheetClose" aria-label="סגירה">${ic('x')}</button></header>
+    <div class="body">${body}<p class="err" id="sheetErr" hidden></p></div>
+    ${onOk || onDel ? `<footer>${onDel ? `<button class="btn danger" data-act="sheetDel">${esc(del || 'מחיקה')}</button>` : ''}${onOk ? `<button class="btn" data-act="sheetOk">${esc(ok)}</button>` : ''}</footer>` : ''}</div></div>`;
+  document.body.style.overflow = 'hidden';
+  if (after) after();
+}
+function closeSheet() { $('#sheetRoot').innerHTML = ''; SHEET = null; document.body.style.overflow = ''; }
+const sheetErr = msg => { const e = $('#sheetErr'); e.textContent = msg; e.hidden = false; e.scrollIntoView({ block: 'nearest' }); };
+const val = id => { const e = document.getElementById(id); return e ? (e.type === 'checkbox' ? e.checked : e.value.trim()) : ''; };
+const lines = id => val(id).split('\n').map(s => s.trim()).filter(Boolean);
+// save from a sheet: close on success, keep it open with the message on failure
+async function save(op, body, okMsg) {
+  const b = $('[data-act="sheetOk"]'); if (b) b.disabled = true;
+  try { const j = await api(op, body); closeSheet(); if ('unit' in j) { setState(j); render(); } toast(okMsg || 'נשמר'); return true; }
+  catch (e) { if (b) b.disabled = false; if ($('#sheetErr')) sheetErr(e.message); else toast(e.message, true); return false; }
+}
+const opts = (list, sel) => list.map(x => `<option ${x === sel ? 'selected' : ''}>${esc(x)}</option>`).join('');
+const ideas = (list, target) => `<div class="chips">${list.map(x => `<button type="button" class="chip sug" data-act="idea" data-to="${target}">${esc(x)}</button>`).join('')}</div>`;
+
+/* people picker: PICK holds the chosen ids while a sheet is open */
+let PICK = new Set();
+function picker(selected = []) {
+  PICK = new Set(selected);
+  const act = activeMembers();
+  const teams = [...S.unit.teams.filter(t => act.some(m => m.team === t)), ...(act.some(m => !S.unit.teams.includes(m.team)) ? [''] : [])];
+  return `<div class="pick"><input class="inp" id="pickQ" placeholder="חיפוש שם" autocomplete="off"><div class="pick-list">${teams.map(t => {
+    const list = act.filter(m => t ? m.team === t : !S.unit.teams.includes(m.team));
+    return `<div class="pick-team"><span>${esc(t || 'בלי צוות')}</span><button type="button" class="link small" data-act="pickTeam" data-team="${esc(t)}" style="padding:0">כל הצוות</button></div>` +
+      list.map(m => `<button type="button" class="pick-row" role="checkbox" aria-checked="${PICK.has(m.id)}" data-act="pick" data-id="${m.id}" data-team="${esc(t)}" data-name="${esc(m.name)}"><span class="check">${ic('check')}</span>${esc(m.name)}</button>`).join('');
+  }).join('') || '<div class="empty">אין עדיין אנשים ברשימה. מוסיפים שמות במסך הפלוגה.</div>'}</div></div><p class="hint" id="pickN">${pickCount()}</p>`;
+}
+const pickCount = () => PICK.size ? `נבחרו ${PICK.size}` : 'לא נבחר אף אחד';
+
+function eventForm(e) {
+  const key = e ? dk(e.start) : UI.tab === 'sched' ? UI.day : today();
+  const lastDay = e && e.allDay ? dk(e.end - 1) : key;
+  sheet({
+    title: e ? 'עריכת אירוע' : 'אירוע חדש',
+    body: `<label class="f">כותרת<input class="inp" id="eTitle" value="${esc(e ? e.title : '')}" maxlength="200"></label>${e ? '' : ideas(EVENT_IDEAS, 'eTitle')}
+      <label class="sw"><input type="checkbox" id="eAll" ${e && e.allDay ? 'checked' : ''} data-act="evAll">יום שלם או כמה ימים (למשל שבוע שטח)</label>
+      <div class="two"><label class="f">תאריך<input class="inp" type="date" id="eDay" value="${key}"></label><label class="f" id="eEndDayW" ${e && e.allDay ? '' : 'hidden'}>עד תאריך<input class="inp" type="date" id="eEndDay" value="${lastDay}"></label></div>
+      <div class="two" id="eTimes" ${e && e.allDay ? 'hidden' : ''}><label class="f">משעה<input class="inp" type="time" id="eFrom" value="${e && !e.allDay ? hm(e.start) : '08:00'}"></label><label class="f">עד שעה<input class="inp" type="time" id="eTo" value="${e && !e.allDay ? hm(e.end) : '09:00'}"></label></div>
+      <label class="f">סוג<select class="inp" id="eKind">${Object.entries(KINDS).map(([k, l]) => `<option value="${k}" ${e && e.kind === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <div class="two"><label class="f">מיקום<input class="inp" id="eLoc" value="${esc(e ? e.location : '')}" maxlength="200"></label><label class="f">למי<select class="inp" id="eTeam"><option value="">כל הפלוגה</option>${opts(S.unit.teams, e ? e.team : '')}</select></label></div>
+      ${e ? '' : `<label class="f">חוזר כל יום במשך<select class="inp" id="eRep"><option value="1">פעם אחת</option>${[2, 3, 4, 5, 6, 7, 14].map(n => `<option value="${n}">${n} ימים</option>`).join('')}</select></label>`}
+      <label class="f">הערות<textarea class="inp" id="eNotes" maxlength="2000">${esc(e ? e.notes : '')}</textarea></label>`,
+    onOk: () => {
+      const day = val('eDay'), all = val('eAll');
+      if (!val('eTitle')) return sheetErr('חסרה כותרת');
+      if (!day) return sheetErr('חסר תאריך');
+      let start, end;
+      if (all) { start = dayMs(day); end = dayMs(addDays(val('eEndDay') >= day ? val('eEndDay') : day, 1)); }
+      else { start = dayMs(day, val('eFrom') || '08:00'); end = dayMs(day, val('eTo') || val('eFrom') || '09:00'); if (end <= start) end += DAY; }
+      save('event.save', { id: e ? e.id : undefined, title: val('eTitle'), start, end, allDay: all, kind: val('eKind'), location: val('eLoc'), team: val('eTeam'), notes: val('eNotes'), repeatDays: e ? 1 : Number(val('eRep')) });
+    },
+    onDel: e ? () => save('event.del', { id: e.id }, 'נמחק') : null
+  });
+}
+function eventView(e) {
+  const when = e.allDay ? (e.end - e.start > DAY ? `${dayLong(dk(e.start))} עד ${dayLong(dk(e.end - 1))}` : dayLong(dk(e.start))) : `${dayLong(dk(e.start))} · ${hm(e.start)}–${hm(e.end)}`;
+  sheet({
+    title: e.title,
+    body: `<div class="row" style="padding:0">${ic('clock')}<div class="b">${esc(when)}</div></div>
+      ${e.location ? `<div class="row" style="padding:0">${ic('pin2')}<div class="b">${esc(e.location)}</div></div>` : ''}
+      <div><span class="badge" style="background:color-mix(in srgb,var(--k-${e.kind}) 16%,var(--surface));color:var(--k-${e.kind})">${KINDS[e.kind]}</span> ${e.team ? `<span class="badge acc">${esc(e.team)}</span>` : '<span class="badge">כל הפלוגה</span>'}</div>
+      ${e.notes ? `<p style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(e.notes)}</p>` : ''}
+      ${e.ics ? '<p class="hint">האירוע מגיע מיומן הגוגל של הקורס, ומשנים אותו שם.</p>' : ''}`,
+    ok: 'עריכה', onOk: canEdit() && !e.ics ? () => eventForm(e) : null
+  });
+}
+
+function taskForm(t) {
+  const shared = canEdit();
+  sheet({
+    title: t ? 'עריכת משימה' : 'משימה חדשה',
+    body: `<label class="f">מה צריך לעשות<input class="inp" id="tTitle" value="${esc(t ? t.title : '')}" maxlength="200"></label>${t ? '' : ideas(TASK_IDEAS, 'tTitle')}
+      <div class="two"><label class="f">תאריך הגשה<input class="inp" type="date" id="tDay" value="${t && t.due ? dk(t.due) : ''}"></label><label class="f">שעה<input class="inp" type="time" id="tTime" value="${t && t.due ? hm(t.due) : '23:59'}"></label></div>
+      <div class="two"><label class="f">סוג<select class="inp" id="tKind">${Object.entries(TASK_KINDS).map(([k, l]) => `<option value="${k}" ${t && t.kind === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="f">למי<select class="inp" id="tScope" ${t ? 'disabled' : ''}>${t ? `<option>${t.scope === 'personal' ? 'רק לי' : t.scope === 'team' ? esc(t.team) : 'כל הפלוגה'}</option>` : `<option value="personal">רק לי</option>${shared ? `<option value="unit" selected>כל הפלוגה</option>${S.unit.teams.map(x => `<option value="team:${esc(x)}">${esc(x)}</option>`).join('')}` : ''}`}</select></label></div>
+      <label class="f">פרטים<textarea class="inp" id="tNotes" maxlength="2000" placeholder="היקף, למי מגישים, קישורים">${esc(t ? t.notes : '')}</textarea></label>`,
+    onOk: () => {
+      if (!val('tTitle')) return sheetErr('חסרה כותרת');
+      const sc = t ? null : val('tScope');
+      const scope = t ? t.scope : sc.startsWith('team:') ? 'team' : sc, team = t ? t.team : sc.startsWith('team:') ? sc.slice(5) : '';
+      save('task.save', { id: t ? t.id : undefined, title: val('tTitle'), due: val('tDay') ? dayMs(val('tDay'), val('tTime') || '23:59') : null, kind: val('tKind'), scope, team, notes: val('tNotes') });
+    },
+    onDel: t ? () => save('task.del', { id: t.id }, 'נמחק') : null
+  });
+}
+function taskView(t) {
+  const own = t.scope === 'personal', editable = own || canEdit();
+  const group = own ? [] : activeMembers().filter(m => t.scope === 'unit' || m.team === t.team);
+  const left = group.filter(m => !t.done.includes(m.id));
+  sheet({
+    title: t.title,
+    body: `${t.due ? `<div class="row" style="padding:0">${ic('clock')}<div class="b">${esc(dayLong(dk(t.due)))} · ${hm(t.due)}</div></div>` : ''}
+      <div><span class="badge">${TASK_KINDS[t.kind]}</span> <span class="badge acc">${own ? 'אישי' : t.scope === 'team' ? esc(t.team) : 'כל הפלוגה'}</span></div>
+      ${t.notes ? `<p style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(t.notes)}</p>` : ''}
+      ${!own && canEdit() ? `<div><div class="sec-h"><h2>ביצעו ${t.done.length} מתוך ${group.length}</h2></div>
+        <div class="prog" style="--k:var(--good);height:8px;margin:0 0 10px"><i style="width:${group.length ? t.done.length / group.length * 100 : 0}%"></i></div>
+        ${left.length ? `<p class="hint" style="margin-bottom:6px">עוד לא סימנו (לחיצה מסמנת בשבילם):</p><div class="chips" style="flex-wrap:wrap">${left.map(m => `<button class="chip sug" data-act="taskTickFor" data-id="${t.id}" data-m="${m.id}">${esc(m.name)}</button>`).join('')}</div>` : '<p class="badge good">כולם ביצעו</p>'}</div>` : ''}`,
+    ok: 'עריכה', onOk: editable ? () => taskForm(t) : null
+  });
+}
+
+function dutyForm(d) {
+  const types = [...new Set([...S.unit.dutyTypes, ...(d ? [d.type] : [])])];
+  sheet({
+    title: d ? 'עריכת תורנות' : 'תורנות חדשה',
+    body: `<label class="f">סוג<select class="inp" id="dType">${opts(types, d ? d.type : '')}<option value="__other">אחר…</option></select></label>
+      <label class="f" id="dOtherW" hidden>שם התורנות<input class="inp" id="dOther" maxlength="40"></label>
+      <div class="two"><label class="f">תאריך<input class="inp" type="date" id="dDay" value="${d ? d.day : (UI.tab === 'sched' ? UI.day : today())}"></label>
+      ${d ? '' : `<label class="f">למשך<select class="inp" id="dLen"><option value="1">יום אחד</option>${[2, 3, 4, 5, 6, 7].map(n => `<option value="${n}">${n} ימים</option>`).join('')}</select></label>`}</div>
+      <label class="f" style="gap:8px">מי בתורנות</label>${picker(d ? d.members : [])}
+      <label class="f">הערות<input class="inp" id="dNotes" value="${esc(d ? d.notes : '')}" maxlength="500" placeholder="שעות, מקום התייצבות"></label>`,
+    after: () => { $('#dType').onchange = ev => { $('#dOtherW').hidden = ev.target.value !== '__other'; }; },
+    onOk: () => {
+      const type = val('dType') === '__other' ? val('dOther') : val('dType');
+      if (!type) return sheetErr('חסר סוג תורנות');
+      if (!val('dDay')) return sheetErr('חסר תאריך');
+      const n = d ? 1 : Number(val('dLen'));
+      save('duty.save', { id: d ? d.id : undefined, type, day: val('dDay'), days: Array.from({ length: n }, (_, i) => addDays(val('dDay'), i)), members: [...PICK], notes: val('dNotes') });
+    },
+    onDel: d ? () => save('duty.del', { id: d.id }, 'נמחק') : null
+  });
+}
+
+function shiftForm(s) {
+  const posts = [...new Set([...S.unit.posts, ...(s ? [s.post] : [])])];
+  sheet({
+    title: s ? 'עריכת משמרת' : 'משמרת חדשה',
+    body: `<label class="f">עמדה<select class="inp" id="sPost">${opts(posts, s ? s.post : '')}</select></label>
+      <label class="f">יום השמירה<span class="hint">שעה לפני 06:00 נחשבת ללילה של אותו יום</span><input class="inp" type="date" id="sDay" value="${s ? guardKey(s.start) : UI.guardDay}"></label>
+      <div class="two"><label class="f">משעה<input class="inp" type="time" id="sFrom" value="${s ? hm(s.start) : '22:00'}"></label><label class="f">עד שעה<input class="inp" type="time" id="sTo" value="${s ? hm(s.end) : '00:00'}"></label></div>
+      <label class="f" style="gap:8px">מי שומר</label>${picker(s ? s.members : [])}`,
+    onOk: () => {
+      if (!val('sPost')) return sheetErr('אין עמדות. מוסיפים עמדות בהגדרות הפלוגה.');
+      if (!val('sDay') || !val('sFrom') || !val('sTo')) return sheetErr('חסר תאריך או שעה');
+      const start = guardMs(val('sDay'), val('sFrom')); let end = guardMs(val('sDay'), val('sTo')); if (end <= start) end += DAY;
+      save('shift.save', { id: s ? s.id : undefined, post: val('sPost'), start, end, members: [...PICK] });
+    },
+    onDel: s ? () => save('shift.del', { id: s.id }, 'נמחק') : null
+  });
+}
+
+/* guard list generator: equal number of shifts each, longest rest first, and whoever guarded less so far goes first */
+let GEN = null;
+function buildGuard(cfg) {
+  const load = new Map(justice().map(r => [r.m.id, r.hours]));
+  const st = new Map(cfg.people.map(id => [id, { n: 0, last: -Infinity, base: cfg.fair ? (load.get(id) || 0) : 0, r: Math.random() }]));
+  const out = [];
+  for (let t = cfg.start; t < cfg.end; t += cfg.len) {
+    const busy = new Set();
+    for (const p of cfg.posts) {
+      const chosen = [];
+      for (let i = 0; i < p.n; i++) {
+        const c = cfg.people.filter(id => !busy.has(id)).sort((a, b) => { const x = st.get(a), y = st.get(b); return x.n - y.n || x.last - y.last || x.base - y.base || x.r - y.r; })[0];
+        if (c === undefined) break;
+        busy.add(c); chosen.push(c);
+      }
+      const end = Math.min(t + cfg.len, cfg.end);
+      chosen.forEach(id => { const x = st.get(id); x.n++; x.last = end; });
+      out.push({ post: p.name, start: t, end, members: chosen });
+    }
+  }
+  return out;
+}
+function genForm() {
+  if (!S.unit.posts.length) return toast('אין עמדות. מוסיפים עמדות בהגדרות הפלוגה.', true);
+  sheet({
+    title: 'מחולל רשימת שמירה',
+    body: `<label class="f">יום השמירה<input class="inp" type="date" id="gDay" value="${UI.guardDay}"></label>
+      <div class="two"><label class="f">משעה<input class="inp" type="time" id="gFrom" value="22:00"></label><label class="f">עד שעה<input class="inp" type="time" id="gTo" value="06:00"></label></div>
+      <label class="f">אורך משמרת<select class="inp" id="gLen">${[[30, 'חצי שעה'], [45, '45 דקות'], [60, 'שעה'], [90, 'שעה וחצי'], [120, 'שעתיים'], [180, '3 שעות'], [240, '4 שעות']].map(([m, l]) => `<option value="${m}" ${m === 60 ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <div class="f">עמדות ומספר שומרים בכל אחת<div class="card rows">${S.unit.posts.map((p, i) => `<div class="row" style="padding:8px 12px"><div class="b" style="font-weight:600;color:var(--fg)">${esc(p)}</div><select class="inp" id="gPost${i}" style="width:auto;min-height:38px;padding:4px 10px"><option value="0">לא מאוישת</option><option value="1" ${i === 0 ? 'selected' : ''}>שומר אחד</option><option value="2">2 שומרים</option><option value="3">3 שומרים</option></select></div>`).join('')}</div></div>
+      <label class="f" style="gap:8px">מי משתתף בסבב</label>${picker([])}
+      <label class="sw"><input type="checkbox" id="gFair" checked>להתחשב בטבלת הצדק</label>
+      <label class="sw"><input type="checkbox" id="gClear" checked>להחליף שמירות שכבר קיימות בשעות האלה</label>`,
+    ok: 'בניית רשימה',
+    onOk: () => {
+      const day = val('gDay'); if (!day) return sheetErr('חסר תאריך');
+      const start = guardMs(day, val('gFrom') || '22:00'); let end = guardMs(day, val('gTo') || '06:00'); if (end <= start) end += DAY;
+      const posts = S.unit.posts.map((name, i) => ({ name, n: Number(val('gPost' + i)) })).filter(p => p.n);
+      if (!posts.length) return sheetErr('צריך לאייש עמדה אחת לפחות');
+      const need = posts.reduce((a, p) => a + p.n, 0);
+      if (PICK.size < need) return sheetErr(`צריך לפחות ${need} אנשים כדי לאייש את כל העמדות באותה שעה`);
+      GEN = { start, end, len: Number(val('gLen')) * 60000, posts, people: [...PICK], fair: val('gFair'), clear: val('gClear') };
+      genPreview();
+    }
+  });
+}
+function genPreview() {
+  GEN.list = buildGuard(GEN);
+  const per = new Map();
+  GEN.list.forEach(s => s.members.forEach(id => per.set(id, (per.get(id) || 0) + 1)));
+  const counts = [...per.values()], lo = Math.min(...counts, GEN.people.length > per.size ? 0 : Infinity), hi = Math.max(...counts);
+  sheet({
+    title: 'הרשימה שנבנתה',
+    body: `<p class="hint">${GEN.list.length} משמרות ל־${GEN.people.length} אנשים. ${lo === hi ? `כל אחד שומר ${plural(hi, 'פעם אחת', 'פעמים')}.` : lo === 0 ? `יש יותר אנשים ממשמרות, אז ${GEN.people.length - per.size} לא שובצו הפעם.` : `כל אחד שומר בין ${lo} ל־${hi} פעמים.`} אחרי השמירה אפשר לשנות כל משמרת בנפרד.</p>
+      ${GEN.posts.map(p => `<div class="card"><div class="post-h">${esc(p.name)}</div><div class="rows">${GEN.list.filter(s => s.post === p.name).map(s => `<div class="row" style="padding:8px 12px"><span class="t">${hm(s.start)}–${hm(s.end)}</span><div class="b">${names(s.members)}</div></div>`).join('')}</div></div>`).join('')}
+      <button class="btn ghost" data-act="genAgain">${ic('wand')}ערבוב מחדש</button>`,
+    ok: 'שמירת הרשימה',
+    onOk: async () => {
+      const b = $('[data-act="sheetOk"]'); b.disabled = true;
+      try {
+        if (GEN.clear) await api('shifts.clear', { from: GEN.start, to: GEN.end });
+        const j = await api('shifts.bulk', { shifts: GEN.list });
+        UI.guardDay = guardKey(GEN.start); UI.guardView = 'list';
+        closeSheet(); setState(j); render(); toast('רשימת השמירה נשמרה');
+      } catch (e) { b.disabled = false; sheetErr(e.message); }
+    }
+  });
+}
+
+function noticeForm(n) {
+  sheet({
+    title: n ? 'עריכת הודעה' : 'הודעה לפלוגה',
+    body: `<label class="f">ההודעה<textarea class="inp" id="nBody" maxlength="1000" style="min-height:120px">${esc(n ? n.body : '')}</textarea></label>
+      <label class="sw"><input type="checkbox" id="nPin" ${n && n.pinned ? 'checked' : ''}>לנעוץ בראש מסך הבית</label>`,
+    ok: n ? 'שמירה' : 'פרסום',
+    onOk: () => val('nBody') ? save('notice.save', { id: n ? n.id : undefined, body: val('nBody'), pinned: val('nPin') }, n ? 'נשמר' : 'פורסם') : sheetErr('ההודעה ריקה'),
+    onDel: n ? () => save('notice.del', { id: n.id }, 'נמחק') : null
+  });
+}
+
+/* ---------- actions ---------- */
+const byId = (arr, el) => arr.find(x => x.id === Number(el.dataset.id));
+const ACT = {
+  tab(el) { UI.tab = el.dataset.tab; render(); },
+  schedDay(el) { UI.day = el.dataset.day; render(); },
+  guardDay(el) { UI.guardDay = el.dataset.day; render(); },
+  guardView(el) { UI.guardView = el.dataset.v; render(); },
+  dutyWeek(el) { UI.dutyWeek = el.dataset.day; render(); },
+  taskFilter(el) { UI.taskFilter = el.dataset.v; render(); },
+
+  sheetClose: closeSheet,
+  sheetScrim(el, e) { if (e.target === el) closeSheet(); },
+  sheetOk() { SHEET && SHEET.onOk && SHEET.onOk(); },
+  sheetDel(el) { if (el.dataset.sure) return SHEET.onDel(); el.dataset.sure = 1; el.textContent = 'בטוח? לחיצה נוספת מוחקת'; },
+  idea(el) { const i = document.getElementById(el.dataset.to); i.value = el.textContent; i.focus(); },
+  pick(el) { const id = Number(el.dataset.id); PICK.has(id) ? PICK.delete(id) : PICK.add(id); el.setAttribute('aria-checked', PICK.has(id)); $('#pickN').textContent = pickCount(); },
+  pickTeam(el) {
+    const rows = [...document.querySelectorAll('.pick-row')].filter(r => r.dataset.team === el.dataset.team && !r.hidden);
+    const on = !rows.every(r => PICK.has(Number(r.dataset.id)));
+    rows.forEach(r => { const id = Number(r.dataset.id); on ? PICK.add(id) : PICK.delete(id); r.setAttribute('aria-checked', on); });
+    $('#pickN').textContent = pickCount();
+  },
+
+  evNew() { eventForm(null); },
+  evOpen(el) { const e = byId(S.events, el); if (e) eventView(e); },
+  evAll(el) { $('#eTimes').hidden = el.checked; $('#eEndDayW').hidden = !el.checked; },
+
+  taskNew() { taskForm(null); },
+  taskOpen(el) { const t = byId(S.tasks, el); if (t) taskView(t); },
+  async taskTick(el) {
+    const t = byId(S.tasks, el); if (!t) return;
+    const done = !isDone(t);
+    // show the tick at once; the server answer confirms it (or puts it back)
+    t.done = done ? [...t.done, S.me.id] : t.done.filter(i => i !== S.me.id);
+    render();
+    if (!await act('task.done', { id: t.id, done })) refresh(true);
+  },
+  async taskTickFor(el) {
+    const j = await act('task.done', { id: Number(el.dataset.id), memberId: Number(el.dataset.m), done: true });
+    if (j) { const t = S.tasks.find(x => x.id === Number(el.dataset.id)); if (t) taskView(t); }
+  },
+
+  dutyNew() { dutyForm(null); },
+  dutyOpen(el) { const d = byId(S.duties, el); if (d) dutyForm(d); },
+  dutyShare() {
+    const days = Array.from({ length: 7 }, (_, i) => addDays(UI.dutyWeek, i));
+    share('🧹 תורנויות השבוע\n' + days.map(d => { const l = S.duties.filter(x => x.day === d); return l.length ? `\n*${dayLong(d)}*\n` + l.map(x => `${x.type}: ${x.members.map(nameOf).join(', ') || '—'}`).join('\n') : ''; }).filter(Boolean).join('\n'));
+  },
+
+  shiftNew() { shiftForm(null); },
+  shiftOpen(el) { const s = byId(S.shifts, el); if (s) shiftForm(s); },
+  guardGen: genForm,
+  genAgain: genPreview,
+  guardShare() { share(guardText(UI.guardDay)); },
+
+  noticeNew() { noticeForm(null); },
+  noticeEdit(el) { const n = byId(S.notices, el); if (n) noticeForm(n); },
+
+  profile() {
+    sheet({
+      title: 'הפרופיל שלי',
+      body: `<label class="f">שם מלא<input class="inp" id="pName" value="${esc(S.me.name)}" maxlength="60"></label>
+        <label class="f">צוות<select class="inp" id="pTeam"><option value="">בלי צוות</option>${opts(S.unit.teams, S.me.team)}</select></label>`,
+      onOk: () => val('pName') ? save('profile', { name: val('pName'), team: val('pTeam') }) : sheetErr('חסר שם')
+    });
+  },
+  memberOpen(el) {
+    const m = byId(S.members, el); if (!m) return;
+    sheet({
+      title: m.name,
+      body: `<label class="f">שם מלא<input class="inp" id="mName" value="${esc(m.name)}" maxlength="60"></label>
+        <label class="f">צוות<select class="inp" id="mTeam"><option value="">בלי צוות</option>${opts(S.unit.teams, m.team)}</select></label>
+        <label class="f">הרשאה<select class="inp" id="mRole">${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${m.role === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <span class="hint">חבר רואה הכול ומסמן משימות. עורך מוסיף ומשנה לו״ז, שמירות, תורנויות ומשימות. מנהל גם מנהל אנשים והגדרות.</span></label>
+        ${m.linked ? '' : '<p class="hint">עוד לא נכנס ללוח. כשייכנס עם הקוד יוכל לבחור את השם הזה.</p>'}`,
+      onOk: () => val('mName') ? save('member.save', { id: m.id, name: val('mName'), team: val('mTeam'), role: val('mRole') }) : sheetErr('חסר שם'),
+      del: 'הסרה', onDel: m.id === S.me.id ? null : () => save('member.remove', { id: m.id }, 'הוסר')
+    });
+  },
+  rosterAdd() {
+    sheet({
+      title: 'הוספת שמות לרשימה',
+      body: `<p class="hint">מדביקים רשימת שמות, שם בכל שורה. כך אפשר לשבץ לשמירות ולתורנויות גם את מי שעוד לא נכנס ללוח. כשמישהו ייכנס עם הקוד, הוא יבחר את השם שלו.</p>
+        <label class="f">צוות<select class="inp" id="rTeam"><option value="">בלי צוות</option>${opts(S.unit.teams, '')}</select></label>
+        <label class="f">שמות<textarea class="inp" id="rNames" style="min-height:180px" placeholder="ישראל ישראלי&#10;דנה כהן"></textarea></label>`,
+      ok: 'הוספה',
+      onOk: () => lines('rNames').length ? save('member.add', { names: lines('rNames'), team: val('rTeam') }, 'נוספו') : sheetErr('לא הוזנו שמות')
+    });
+  },
+  settings() {
+    const u = S.unit;
+    sheet({
+      title: 'הגדרות הפלוגה',
+      body: `<label class="f">שם הפלוגה<input class="inp" id="uName" value="${esc(u.name)}" maxlength="60"></label>
+        <label class="f">צוותים<span class="hint">שם בכל שורה</span><textarea class="inp" id="uTeams">${esc(u.teams.join('\n'))}</textarea></label>
+        <label class="f">עמדות שמירה<span class="hint">שם בכל שורה. בלי מיקומים מדויקים.</span><textarea class="inp" id="uPosts">${esc(u.posts.join('\n'))}</textarea></label>
+        <label class="f">סוגי תורנות<span class="hint">שם בכל שורה</span><textarea class="inp" id="uDuty" style="min-height:150px">${esc(u.dutyTypes.join('\n'))}</textarea></label>`,
+      onOk: () => save('settings', { name: val('uName'), teams: lines('uTeams'), posts: lines('uPosts'), dutyTypes: lines('uDuty'), openEdit: u.openEdit, icsUrl: u.icsUrl })
+    });
+  },
+  icsSet() {
+    const u = S.unit;
+    sheet({
+      title: 'חיבור יומן גוגל',
+      body: `<p>כשהלו״ז של הקורס יגיע ליומן גוגל, מדביקים כאן את הכתובת הסודית שלו והלו״ז יופיע לכל הפלוגה ויתעדכן לבד כל רבע שעה.</p>
+        <ol style="margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:4px" class="small">
+          <li>פותחים את Google Calendar במחשב.</li><li>ליד שם היומן: שלוש נקודות ← הגדרות ושיתוף.</li>
+          <li>גוללים אל "כתובת סודית בפורמט iCal" ומעתיקים.</li><li>מדביקים כאן ושומרים.</li></ol>
+        <label class="f">כתובת iCal סודית<input class="inp" id="iUrl" dir="ltr" value="${esc(u.icsUrl)}" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"></label>
+        <p class="hint">הכתובת נשמרת בשרת ונראית רק למנהלי הפלוגה. אירועים שמגיעים מהיומן משנים ביומן עצמו.</p>
+        ${u.icsUrl ? `<button class="btn ghost" data-act="icsSync">סנכרון עכשיו</button>` : ''}`,
+      onOk: () => save('settings', { name: u.name, teams: u.teams, posts: u.posts, dutyTypes: u.dutyTypes, openEdit: u.openEdit, icsUrl: val('iUrl') }, val('iUrl') ? 'היומן חובר' : 'נשמר')
+    });
+  },
+  async icsSync() { closeSheet(); const j = await act('ics.sync'); if (j) toast(S.unit.icsErr ? 'הסנכרון נכשל: ' + S.unit.icsErr : 'היומן סונכרן', Boolean(S.unit.icsErr)); },
+  openEdit() { const u = S.unit; act('settings', { name: u.name, teams: u.teams, posts: u.posts, dutyTypes: u.dutyTypes, openEdit: !u.openEdit, icsUrl: u.icsUrl }); },
+  invite() { share(`הצטרפו ללוח של ${S.unit.name}: לו״ז, שמירות, תורנויות ומשימות.\n${location.origin}/pluga?code=${S.unit.code}\nקוד: ${S.unit.code}`); },
+  codeReset(el) { if (!el.dataset.sure) { el.dataset.sure = 1; el.textContent = 'בטוח? הקוד הישן יפסיק לעבוד'; return; } act('code.reset', {}, 'הקוד הוחלף'); },
+  leave(el) { if (!el.dataset.sure) { el.dataset.sure = 1; el.querySelector('h3').textContent = 'בטוח? לחיצה נוספת מוציאה אותך מהפלוגה'; return; } try { localStorage.removeItem('pl_state'); } catch {} UI.tab = 'today'; act('leave'); },
+  async logout() {
+    try { await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'logout' }) }); } catch {}
+    try { localStorage.removeItem('pl_state'); } catch {}
+    S = null; render();
+  },
+
+  async joinPeek() {
+    JOIN.code = val('jCode').toUpperCase(); JOIN.err = '';
+    if (JOIN.code.length < 6) { JOIN.err = 'הקוד הוא 6 תווים'; return render(); }
+    try { JOIN.peek = await api('peek', { code: JOIN.code }); JOIN.step = 'who'; } catch (e) { JOIN.err = e.message; }
+    render();
+  },
+  joinNew() { JOIN.step = 'new'; JOIN.err = ''; render(); },
+  joinBack() { JOIN.step = 'code'; JOIN.err = ''; render(); },
+  async joinClaim(el) { await joinWith({ code: JOIN.code, memberId: Number(el.dataset.id) }); },
+  async joinAdd() { if (!val('jName')) { JOIN.err = 'חסר שם'; return render(); } await joinWith({ code: JOIN.code, name: val('jName'), team: val('jTeam') }); },
+  async joinCreate() {
+    if (!val('nUnit') || !val('nName')) { JOIN.err = 'חסר שם פלוגה או השם שלך'; return render(); }
+    try { setState(await api('create', { name: val('nUnit'), myName: val('nName'), teams: lines('nTeams'), team: val('nTeam') })); UI.tab = 'unit'; } catch (e) { JOIN.err = e.message; }
+    render();
+  }
+};
+async function joinWith(body) {
+  try { setState(await api('join', body)); try { localStorage.removeItem('pl_code'); } catch {} } catch (e) { JOIN.err = e.message; }
+  render();
+}
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (el && ACT[el.dataset.act]) ACT[el.dataset.act](el, e);
+});
+document.addEventListener('input', e => {
+  if (e.target.id !== 'pickQ') return;
+  const q = e.target.value.trim();
+  document.querySelectorAll('.pick-row').forEach(r => { r.hidden = Boolean(q) && !r.dataset.name.includes(q); });
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && SHEET) closeSheet(); });
+
+/* ---------- start ---------- */
+(async function boot() {
+  const q = new URLSearchParams(location.search);
+  // an invitation link carries the code; keep it across the Google sign-in
+  try { if (q.get('code')) localStorage.setItem('pl_code', q.get('code').toUpperCase().slice(0, 6)); JOIN.code = localStorage.getItem('pl_code') || ''; } catch {}
+  try { localStorage.removeItem('pl_back'); } catch {}
+  if (q.has('code') || q.has('login')) history.replaceState(null, '', '/pluga');
+  try { const c = JSON.parse(localStorage.getItem('pl_state') || 'null'); if (c && c.unit) { setState(c); render(); } } catch {}
+  try { CFG = await (await fetch('/api/config')).json(); } catch {}
+  try { setState(await api('state')); }
+  catch (e) { if (e.status === 401) S = null; else if (S) toast('אין חיבור. מוצג המידע האחרון שנשמר.', true); else { $('#app').innerHTML = `<div class="wrap welcome"><h1>לא הצלחנו לטעון</h1><p class="muted">${esc(e.message)}</p><button class="btn" onclick="location.reload()">ניסיון נוסף</button></div>`; return; } }
+  render();
+  if (q.get('login') === 'error') toast('ההתחברות לא הצליחה. נסו שוב.', true);
+  // stay fresh: when the page comes back to the front and every 90 seconds, unless a form is open
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && S && S.unit && !SHEET) refresh(true); });
+  setInterval(() => { if (!document.hidden && S && S.unit && !SHEET) refresh(true); }, 90000);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
